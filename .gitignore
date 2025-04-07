@@ -1,58 +1,23 @@
-# Node.js
+# Node modules
 node_modules/
-npm-debug.log*
-yarn-debug.log*
-yarn-error.log*
-pnpm-lock.yaml
 
 # Environment variables
 .env
-.env.local
-.env.*.local
-
-# Build output
-dist/
-build/
-.next/
-out/
-.cache/
-
-# OS-specific files
-.DS_Store
-Thumbs.db
 
 # Logs
 logs/
 *.log
-*.log.*
+npm-debug.log*
 
-# Editor folders
+# OS-specific
+.DS_Store
+Thumbs.db
+
+# IDE/editor folders
 .vscode/
 .idea/
-*.sublime-workspace
-*.sublime-project
 
-# Dependency directories
-bower_components/
-
-# Testing
-coverage/
-*.lcov
-
-# Misc
-*.tgz
-*.gz
-*.zip
-*.tmp
-*.bak
-
-# Firebase
-.firebase/
-.firebaserc
-
-# UploadThing
-uploadthing.json
-
-# Local database
-*.sqlite
-*.sqlite3
+# Optional build folders (if any)
+dist/
+build/
+.env
