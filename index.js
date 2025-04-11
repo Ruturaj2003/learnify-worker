@@ -1,19 +1,20 @@
 const { Worker } = require('bullmq');
-const redis = require('./lib/redis');
 const connectToDB = require('./lib/mongodb');
+const redis = require('./lib/redis');
+const processBook = require('./jobs/processBook');
 
 (async () => {
   console.log('[WORKER] Connecting to MongoDB...');
   await connectToDB();
 
-  console.log('[WORKER] Waiting for jobs...');
-
   new Worker(
     'section-queue',
     async (job) => {
       console.log(`[WORKER] Job started: ${job.id}`);
-      // You can add processing logic here later
+      await processBook(job.data);
     },
     { connection: redis }
   );
+
+  console.log('[WORKER] Waiting for jobs...');
 })();
