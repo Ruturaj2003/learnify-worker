@@ -40,19 +40,10 @@ module.exports = async function splitIntoChapters(pdfBuffer, tocEntries) {
 
     // Create a new PDF document for the chapter
     const chapterDoc = await PDFDocument.create();
-    const pagesToCopy = [];
 
     // Copy pages from the start of this chapter to the end
     for (let j = startPage; j < nextStartPage; j++) {
-      const page = await pdfDoc.getPage(j);
-      pagesToCopy.push(page);
-    }
-
-    // Add pages to the new chapter PDF
-    for (let page of pagesToCopy) {
-      const [copiedPage] = await chapterDoc.copyPages(pdfDoc, [
-        pdfDoc.getPageIndex(page),
-      ]);
+      const [copiedPage] = await chapterDoc.copyPages(pdfDoc, [j]);
       chapterDoc.addPage(copiedPage);
     }
 
