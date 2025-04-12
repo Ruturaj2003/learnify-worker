@@ -16,12 +16,12 @@ async function processBook(bookId, fileUrl) {
     console.log('[processBook] Parsing Table of Contents...');
     const tocEntries = parseTOC(tocPages); // Pass only the tocPages array
 
-    console.log('[processBook] Splitting PDF into chapters...');
-    const chapterBuffers = await splitIntoChapters(pdfBuffer, tocEntries);
+    // console.log('[processBook] Splitting PDF into chapters...');
+    // const chapterBuffers = await splitIntoChapters(pdfBuffer, tocEntries);
 
-    // Save chapters to the database
-    console.log('[processBook] Saving chapters to DB...');
-    await saveChapters(chapterBuffers, bookId); // Pass bookId to associate chapters with a book
+    // // Save chapters to the database
+    // console.log('[processBook] Saving chapters to DB...');
+    // await saveChapters(chapterBuffers, bookId); // Pass bookId to associate chapters with a book
 
     console.log('[processBook] Book processing completed successfully!');
   } catch (error) {
