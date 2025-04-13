@@ -1,103 +1,119 @@
 module.exports = function parseTOCPages(tocTexts) {
-  const entries = [];
+  const entries = []; // Stores chapter entries with title, startPage, endPage
+  const chapterNames = []; // Stores the line before each valid TOC entry
 
-  // Log tocTexts to inspect its structure
-  console.log('[ParseTOC] tocTexts:', tocTexts);
-
-  // Ensure tocTexts is an array
   if (!Array.isArray(tocTexts)) {
-    console.error(
-      '[ParseTOC] Error: tocTexts is not an array. It is a',
-      typeof tocTexts
-    );
-    return entries; // Return empty array if tocTexts is not an array
+    console.error('[ParseTOC ❌] tocTexts is not an array!');
+    return entries;
   }
 
-  // Join all TOC pages into a single block of text
   const fullText = tocTexts.join('\n');
   const lines = fullText.split('\n');
 
-  console.log('[ParseTOC] Parsing Table of Contents...');
   console.log(`[ParseTOC] Total lines to process: ${lines.length}`);
 
-  for (const line of lines) {
-    const cleaned = line.trim();
-    if (!cleaned) {
-      console.log('[ParseTOC] Skipping empty or whitespace-only line.');
+  for (let i = 0; i < lines.length; i++) {
+    const line = lines[i].trim();
+    if (!line) {
+      console.log(`[ParseTOC] Skipping empty line at index ${i}`);
       continue;
     }
 
-    console.log(`[ParseTOC] Processing line: "${cleaned}"`);
+    const cleanedLine = line.replace(/\s*\.\s*/g, ' ').trim();
 
-    // Clean the line by removing extra spaces and dots
-    const cleanedLine = cleaned.replace(/\s*\.\s*/g, ' ').trim(); // Replace multiple dots with a single space
-
-    // Match for high-level chapters and sub-chapters with a space and page number
+    // Try matching standard pattern: "Chapter Name 123"
     let match = cleanedLine.match(
-      /^(Chapter\s+[A-Za-z0-9\s\-:]+)\s+(\d{1,4})$/ // Match chapters with page number
+      /^(Chapter\s+[A-Za-z0-9\s\-:]+)\s+(\d{1,4})$/
     );
 
+    // If no match, try general pattern: "Title 123"
     if (!match) {
-      console.log(
-        '[ParseTOC] No match for high-level chapters, trying alternative patterns...'
-      );
-      match = cleanedLine.match(/^([A-Za-z0-9\s\-:]+?)\s+(\d{1,4})$/); // Fallback: generic title and page number
+      match = cleanedLine.match(/^([A-Za-z0-9\s\-:]+?)\s+(\d{1,4})$/);
     }
 
     if (match) {
-      const title = match[1].trim().replace(/[\s\.]+$/, ''); // Remove trailing dots/spaces
-      const page = parseInt(match[2]);
+      const title = match[1].trim().replace(/[\s\.]+$/, '');
+      const startPage = parseInt(match[2]);
 
-      // Only add top-level chapters (no sub-chapters like "1.1" or "1.2")
-      if (title && !isNaN(page) && !/\d+\.\d+/.test(title)) {
-        console.log(`[ParseTOC] Found valid entry: "${title}" on page ${page}`);
-        entries.push({ title, page });
-      } else {
+      // Skip subchapters like "4.1 Something"
+      if (title && !isNaN(startPage) && !/\d+\.\d+/.test(title)) {
+        entries.push({ title, startPage, endPage: null });
         console.log(
-          '[ParseTOC] Invalid or sub-chapter entry found, skipping...'
+          `[ParseTOC ✅] Matched: "${title}" starts on page ${startPage}`
         );
+
+        if (i > 0) {
+          const prevLine = lines[i - 1].trim();
+          if (prevLine) {
+            chapterNames.push(prevLine);
+            console.log(
+              `[ParseTOC 📌] Saved previous line as chapter name: "${prevLine}"`
+            );
+          }
+        }
       }
     } else {
-      // Extra edge case: lines like "Chapter 1 - Intro to X 9"
-      console.log(
-        '[ParseTOC] Trying alternate pattern for hyphenated chapters...'
-      );
+      // Try matching alternative format: "Title – description 123"
       const altMatch = cleanedLine.match(/^(.*?)\s+[-–]\s+.*?(\d{1,4})$/);
       if (altMatch) {
         const title = altMatch[1].trim();
-        const page = parseInt(altMatch[2]);
-        // Only add top-level chapters (no sub-chapters like "1.1" or "1.2")
-        if (title && !isNaN(page) && !/\d+\.\d+/.test(title)) {
+        const startPage = parseInt(altMatch[2]);
+
+        if (title && !isNaN(startPage) && !/\d+\.\d+/.test(title)) {
+          entries.push({ title, startPage, endPage: null });
           console.log(
-            `[ParseTOC] Found alternate valid entry: "${title}" on page ${page}`
+            `[ParseTOC ✅] Alt matched: "${title}" starts on page ${startPage}`
           );
-          entries.push({ title, page });
-        } else {
-          console.log(
-            '[ParseTOC] Invalid entry found in alternate pattern, skipping...'
-          );
+
+          if (i > 0) {
+            const prevLine = lines[i - 1].trim();
+            if (prevLine) {
+              chapterNames.push(prevLine);
+              console.log(
+                `[ParseTOC 📌] Saved previous line as chapter name: "${prevLine}"`
+              );
+            }
+          }
         }
-      } else {
-        console.log('[ParseTOC] No valid matches found for this line.');
       }
     }
   }
 
-  if (entries.length === 0) {
-    console.warn('[ParseTOC ❌] No valid entries found in TOC text.');
-  } else {
-    console.log(
-      `[ParseTOC ✅] Parsed ${entries.length} valid entries from TOC.`
-    );
+  // Set endPage using the startPage of the next entry
+  for (let i = 0; i < entries.length - 1; i++) {
+    entries[i].endPage = entries[i + 1].startPage - 1;
   }
 
-  // Check for any entries with missing or invalid titles/pages
-  entries.forEach((entry, index) => {
-    if (!entry.title || isNaN(entry.page)) {
-      console.error(`[ParseTOC] Invalid entry at index ${index}:`, entry);
-    }
-  });
-  console.log(entries);
+  // Log final results
+  console.log('\n--- ✅ Parsed TOC Entries with Page Ranges ---');
+  console.dir(entries, { depth: null, maxArrayLength: null });
 
+  console.log('\n--- 📚 Lines Before Each Valid Chapter (chapterNames) ---');
+  console.dir(chapterNames, { depth: null, maxArrayLength: null });
+
+  function removeDots(lines) {
+    return lines.map((line) => line.replace(/(\.\s*)+/g, '').trim());
+  }
+  console.dir(removeDots(chapterNames), {
+    depth: null,
+    maxArrayLength: null,
+  });
+
+  // Remove dots from chapterNames
+  const nondot = chapterNames.map((line) =>
+    line.replace(/(\.\s*)+/g, '').trim()
+  );
+
+  // Remove chapterNames that match entry titles exactly
+  const entryTitles = new Set(entries.map((e) => e.title));
+  const uniqueChapterNames = nondot.filter((name) => !entryTitles.has(name));
+
+  console.log('\n--- ✅ Parsed TOC Entries with Page Ranges ---');
+  console.dir(entries, { depth: null });
+
+  console.log(
+    '\n--- 📚 Unique Chapter Names (after dot removal and filtering) ---'
+  );
+  console.dir(uniqueChapterNames, { depth: null });
   return entries;
 };
