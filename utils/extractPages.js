@@ -22,7 +22,7 @@ module.exports = async function extractPages(pdfBuffer) {
   let collectedCount = 0; // Track how many pages collected
 
   for (let i = 0; i < totalPages; i++) {
-    if (collecting && collectedCount >= 12) {
+    if (collecting && collectedCount >= 17) {
       console.log('[TOC ⏹️] Reached max of 15 TOC pages. Stopping collection.');
       break;
     }

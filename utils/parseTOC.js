@@ -135,7 +135,7 @@ module.exports = async function parseTOCPages(pdfBuffer, tocTexts) {
   // Debug: Output sub-chapters to the console
   // console.log(JSON.stringify(mainChapters, null, 2));
   const lastPage = await calcLastPage();
-  console.log(lastPage);
+  console.log(grpChapters);
 
   // Return the original table of contents array
   return tocArray;
