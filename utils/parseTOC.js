@@ -1,11 +1,25 @@
 module.exports = function parseTOCPages(tocTexts) {
+  // Convert text to array of lines and clean up whitespace
   let tocArray = convertToArray(tocTexts);
-
-  // Clean up whitespace
   tocArray = tocArray.map((text) => text.trim());
 
-  // Merge lines like: "11. ", "Electromagnetism 328"
+  // Merge lines like "11. ", "Electromagnetism 328"
   tocArray = mergeNumberedLines(tocArray);
+
+  // Process chapter titles to remove unwanted dots, spaces, and adjust formatting
+  let chapterTitles = tocArray.filter(scanForChapterTitle);
+  chapterTitles = chapterTitles.map((text) => {
+    let modifiedText = removeDots(text);
+    let modifiedText2 = removeExtraSpaces(modifiedText);
+    let modifiedText3 = adjustSpacing(modifiedText2);
+    return modifiedText3.trim(); // Remove leading/trailing whitespace
+  });
+
+  // Extract main chapters (with 1 or 2 digit numbers followed by an alphabet)
+  let mainChapters = [...new Set(chapterTitles.filter(extractMainChapters))];
+
+  // Extract sub-chapters that are not in the main chapters
+  let subChapters = chapterTitles.filter(extractSubChapters);
 
   // Function to convert string chunks into an array
   function convertToArray(tocTexts) {
@@ -17,7 +31,7 @@ module.exports = function parseTOCPages(tocTexts) {
     return result;
   }
 
-  // Function to merge number-dot-space lines with the next one
+  // Function to merge numbered lines like "11. ", "Electromagnetism 328"
   function mergeNumberedLines(arr) {
     let result = [];
     for (let i = 0; i < arr.length; i++) {
@@ -38,21 +52,22 @@ module.exports = function parseTOCPages(tocTexts) {
     return regex.test(text);
   }
 
+  // Remove dots after the 4th character
   function removeDots(str) {
     let before4thChar = str.slice(0, 4);
     let after4thChar = str.slice(4);
-
     after4thChar = after4thChar.replace(/\./g, '');
     return before4thChar + after4thChar;
   }
 
+  // Remove extra spaces (spaces, tabs, newlines) and trim the string
   function removeExtraSpaces(str) {
-    // Replace multiple spaces, tabs, or newlines with a single space
     return str.replace(/\s+/g, ' ').trim();
   }
+
+  // Adjust spacing between numbers and letters
   function adjustSpacing(str) {
     let i = str.length - 1;
-
     while (i >= 0) {
       if (/\d/.test(str[i])) {
         if (
@@ -72,24 +87,13 @@ module.exports = function parseTOCPages(tocTexts) {
     return str;
   }
 
+  // Extract main chapters (numbers followed by alphabet)
   function extractMainChapters(text) {
     const regex = /^\d{1,2}[.\s][A-Za-z]/;
     return regex.test(text);
   }
 
-  let chapterTitles = tocArray.filter(scanForChapterTitle);
-  chapterTitles = chapterTitles.map((text) => {
-    // Remove dots after the 4th character
-    let modifiedText = removeDots(text);
-    let modifiedText2 = removeExtraSpaces(modifiedText);
-    let modifiedText3 = adjustSpacing(modifiedText2);
-    let modifiedText4 = modifiedText3.trim();
-    // Remove leading and trailing whitespace
-    return modifiedText4;
-  });
-  let mainChapters = [...new Set(chapterTitles.filter(extractMainChapters))];
-
-  let subChapters = chapterTitles.filter(extractSubChapters);
+  // Extract sub-chapters (anything not in main chapters)
   function extractSubChapters(text) {
     if (mainChapters.includes(text)) {
       return false;
@@ -97,10 +101,20 @@ module.exports = function parseTOCPages(tocTexts) {
       return true;
     }
   }
-  console.log(JSON.stringify(subChapters, null, 2));
+
+  // Debug: Output sub-chapters to the console
+  console.log(JSON.stringify(mainChapters, null, 2));
+
+  // Return the original table of contents array
   return tocArray;
 };
+
 // TODO: 3: Validate page numbers
+// DO Big Brain move , since u have the main chapters with you they will have proper chapter setting , when using it just add to the collection the subchaters that start with the same number and have dot after it , like that all will be sorted no need of complex logic
 // - Ensure the first page number starts with "1".
 // - Check if the next page number is greater than the previous one. If it is, remove the invalid entry.
 // - This validation should be done in the final stage.
+
+// TODO : 4 : Add first and Last Pages
+
+// TODO: 5 : How will u save and group those segements ?
