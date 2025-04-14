@@ -87,8 +87,7 @@ module.exports = function parseTOCPages(tocTexts) {
     // Remove leading and trailing whitespace
     return modifiedText4;
   });
-
-  let mainChapters = chapterTitles.filter(extractMainChapters);
+  let mainChapters = [...new Set(chapterTitles.filter(extractMainChapters))];
 
   console.log(JSON.stringify(mainChapters, null, 2));
   return tocArray;
