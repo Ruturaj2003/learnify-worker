@@ -62,9 +62,7 @@ module.exports = function parseTOCPages(tocTexts) {
         ) {
           i--;
           continue;
-        }
-
-        if (/[a-zA-Z]/.test(str[i - 1])) {
+        } else {
           str = str.slice(0, i) + ' ' + str.slice(i);
           break;
         }
