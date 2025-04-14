@@ -11,7 +11,7 @@ const queue = new Queue('section-queue', { connection });
   await queue.add('process-pdf', {
     bookId: '67fa155a96847e4919ee468c',
     fileUrl:
-      'https://kvoeqp987e.ufs.sh/f/rsRuktVxg1ysjThdWUdScVnhvZUYesIfilq7PxO2oNy0T56p',
+      'https://kvoeqp987e.ufs.sh/f/rsRuktVxg1ys1VQjErFhtZSY7QmG5zl4ErFq9x8wcy6CoP2u',
   });
 
   console.log('📬 Job added to queue');
