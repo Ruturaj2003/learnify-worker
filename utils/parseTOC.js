@@ -89,7 +89,15 @@ module.exports = function parseTOCPages(tocTexts) {
   });
   let mainChapters = [...new Set(chapterTitles.filter(extractMainChapters))];
 
-  console.log(JSON.stringify(mainChapters, null, 2));
+  let subChapters = chapterTitles.filter(extractSubChapters);
+  function extractSubChapters(text) {
+    if (mainChapters.includes(text)) {
+      return false;
+    } else {
+      return true;
+    }
+  }
+  console.log(JSON.stringify(subChapters, null, 2));
   return tocArray;
 };
 
