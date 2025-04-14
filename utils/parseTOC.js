@@ -38,7 +38,22 @@ module.exports = function parseTOCPages(tocTexts) {
     return regex.test(text);
   }
 
-  const chapterTitles = tocArray.filter(scanForChapterTitle);
+  function removeDots(str) {
+    let before4thChar = str.slice(0, 4);
+    let after4thChar = str.slice(4);
+
+    after4thChar = after4thChar.replace(/\./g, '');
+    return before4thChar + after4thChar;
+  }
+
+  let chapterTitles = tocArray.filter(scanForChapterTitle);
+
+  chapterTitles = chapterTitles.map((text) => {
+    // Remove dots after the 4th character
+    let modifiedText = removeDots(text);
+    // Remove leading and trailing whitespace
+    return modifiedText;
+  });
 
   console.log(JSON.stringify(chapterTitles, null, 2));
 
