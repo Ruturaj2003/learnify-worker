@@ -50,14 +50,38 @@ module.exports = function parseTOCPages(tocTexts) {
     // Replace multiple spaces, tabs, or newlines with a single space
     return str.replace(/\s+/g, ' ').trim();
   }
-  let chapterTitles = tocArray.filter(scanForChapterTitle);
+  function adjustSpacing(str) {
+    let i = str.length - 1;
 
+    while (i >= 0) {
+      if (/\d/.test(str[i])) {
+        if (
+          /\d/.test(str[i - 1]) ||
+          /\s/.test(str[i - 1]) ||
+          /\t/.test(str[i - 1])
+        ) {
+          i--;
+          continue;
+        }
+
+        if (/[a-zA-Z]/.test(str[i - 1])) {
+          str = str.slice(0, i) + ' ' + str.slice(i);
+          break;
+        }
+      }
+      i--;
+    }
+    return str;
+  }
+
+  let chapterTitles = tocArray.filter(scanForChapterTitle);
   chapterTitles = chapterTitles.map((text) => {
     // Remove dots after the 4th character
     let modifiedText = removeDots(text);
     let modifiedText2 = removeExtraSpaces(modifiedText);
+    let modifiedText3 = adjustSpacing(modifiedText2);
     // Remove leading and trailing whitespace
-    return modifiedText2;
+    return modifiedText3;
   });
 
   console.log(JSON.stringify(chapterTitles, null, 2));
