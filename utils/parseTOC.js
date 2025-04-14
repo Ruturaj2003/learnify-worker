@@ -72,17 +72,31 @@ module.exports = function parseTOCPages(tocTexts) {
     return str;
   }
 
+  function extractMainChapters(text) {
+    const regex = /^\d{1,2}[.\s][A-Za-z]/;
+    return regex.test(text);
+  }
+
   let chapterTitles = tocArray.filter(scanForChapterTitle);
   chapterTitles = chapterTitles.map((text) => {
     // Remove dots after the 4th character
     let modifiedText = removeDots(text);
     let modifiedText2 = removeExtraSpaces(modifiedText);
     let modifiedText3 = adjustSpacing(modifiedText2);
+    let modifiedText4 = modifiedText3.trim();
     // Remove leading and trailing whitespace
-    return modifiedText3;
+    return modifiedText4;
   });
 
-  console.log(JSON.stringify(chapterTitles, null, 2));
+  let mainChapters = chapterTitles.filter(extractMainChapters);
 
+  console.log(JSON.stringify(mainChapters, null, 2));
   return tocArray;
 };
+
+// Todo : 1 : Extarct main chapter of 2 styles
+// Todo  1 : 3.Chapter name and 2 : 3 Chapter Name
+
+// Todo : 2 : Remove Dupliactes
+
+// Todo : 3  : Check if the next page number is greater than the one before , and remove if so ( Do it in final Stage )
