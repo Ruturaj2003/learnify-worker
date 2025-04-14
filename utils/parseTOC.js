@@ -1,4 +1,6 @@
-module.exports = function parseTOCPages(tocTexts) {
+const { PDFDocument } = require('pdf-lib');
+
+module.exports = async function parseTOCPages(pdfBuffer, tocTexts) {
   // Convert text to array of lines and clean up whitespace
   let tocArray = convertToArray(tocTexts);
   tocArray = tocArray.map((text) => text.trim());
@@ -115,22 +117,39 @@ module.exports = function parseTOCPages(tocTexts) {
     return groupedChapters;
   }
 
+  // Calc the last page :
+  async function calcLastPage() {
+    let pdfDoc;
+
+    try {
+      pdfDoc = await PDFDocument.load(pdfBuffer);
+    } catch (err) {
+      return [];
+    }
+
+    return pdfDoc.getPageCount();
+  }
+
   const grpChapters = segementSubChapters();
 
   // Debug: Output sub-chapters to the console
   // console.log(JSON.stringify(mainChapters, null, 2));
-  console.log(grpChapters);
+  const lastPage = await calcLastPage();
+  console.log(lastPage);
 
   // Return the original table of contents array
   return tocArray;
 };
 
-// TODO: 3: Validate page numbers
-// DO Big Brain move , since u have the main chapters with you they will have proper chapter setting , when using it just add to the collection the subchaters that start with the same number and have dot after it , like that all will be sorted no need of complex logic
-// - Ensure the first page number starts with "1".
-// - Check if the next page number is greater than the previous one. If it is, remove the invalid entry.
-// - This validation should be done in the final stage.
-
 // TODO : 4 : Add first and Last Pages
+// Check if the last entry has abrud number , remove it
+// Check if the next entry is not there use the last page
+// Check if the next entry has absurd number use the last page
+//  Since here there is no access to the lib we wont know the last page or i could just use it here amd calc it , seems better that way
 
 // TODO: 5 : How will u save and group those segements ?
+
+// TODO : 6 : Handle with or without subchapters
+// Chek the first 3 array if they length then it will be with no subchapters
+
+// Pass the object of split chapters so it will know if no subchapters it will have to scan the chapters and spilt them and save them , Dam Boii its getting Tougher and complex by the minute
