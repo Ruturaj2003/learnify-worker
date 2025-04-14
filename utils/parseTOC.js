@@ -46,13 +46,18 @@ module.exports = function parseTOCPages(tocTexts) {
     return before4thChar + after4thChar;
   }
 
+  function removeExtraSpaces(str) {
+    // Replace multiple spaces, tabs, or newlines with a single space
+    return str.replace(/\s+/g, ' ').trim();
+  }
   let chapterTitles = tocArray.filter(scanForChapterTitle);
 
   chapterTitles = chapterTitles.map((text) => {
     // Remove dots after the 4th character
     let modifiedText = removeDots(text);
+    let modifiedText2 = removeExtraSpaces(modifiedText);
     // Remove leading and trailing whitespace
-    return modifiedText;
+    return modifiedText2;
   });
 
   console.log(JSON.stringify(chapterTitles, null, 2));
