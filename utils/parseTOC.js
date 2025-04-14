@@ -102,8 +102,24 @@ module.exports = function parseTOCPages(tocTexts) {
     }
   }
 
+  function segementSubChapters() {
+    let groupedChapters = {};
+
+    for (let main of mainChapters) {
+      let mainNumber = main.match(/^\d+/)[0]; // e.g., "1" from "1. Introduction"
+      groupedChapters[main] = subChapters.filter((sub) =>
+        sub.startsWith(mainNumber + '.')
+      );
+    }
+
+    return groupedChapters;
+  }
+
+  const grpChapters = segementSubChapters();
+
   // Debug: Output sub-chapters to the console
-  console.log(JSON.stringify(mainChapters, null, 2));
+  // console.log(JSON.stringify(mainChapters, null, 2));
+  console.log(grpChapters);
 
   // Return the original table of contents array
   return tocArray;
