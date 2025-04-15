@@ -137,6 +137,82 @@ module.exports = async function parseTOCPages(pdfBuffer, tocTexts) {
   const lastPage = await calcLastPage();
   console.log(grpChapters);
 
+  // Add Start Page and End Page To Main Chapters and the structure
+  function structureMainChapter() {
+    let length = mainChapters.length;
+    let structedChapters = [];
+
+    for (let i = 0; i < length; i++) {
+      let current = mainChapters[i];
+
+      // Extract chapter number
+      let chapterMatch = current.match(/^\d+/);
+      let chapterNum = chapterMatch ? Number(chapterMatch[0]) : null;
+
+      // Extract title
+      let title = current
+        .replace(/^\d+\s*/, '')
+        .replace(/\s*\d+$/, '')
+        .trim();
+
+      // Start page
+      let startMatch = current.match(/\d+$/);
+      let startPage = startMatch ? Number(startMatch[0]) : null;
+      if (i === 0 && startPage > 15) {
+        continue;
+      }
+
+      // End page
+      let endPage;
+      if (i === length - 1) {
+        endPage = Number(lastPage); // `lastPage` should be defined somewhere
+      } else {
+        let nextMatch = mainChapters[i + 1].match(/\d+$/);
+        endPage = nextMatch ? Number(nextMatch[0]) : null;
+      }
+      title = title.replace(/^\./, '').trim();
+
+      // Final object
+      let ChapData = {
+        ChapterName: title,
+        ChapterNumber: chapterNum,
+        StartPage: startPage,
+        EndPage: endPage,
+      };
+
+      structedChapters.push(ChapData);
+    }
+
+    return structedChapters;
+  }
+
+  function formatSubChapters(subChapters) {
+    let formattedChapters = [];
+
+    for (let subChap of subChapters) {
+      let cleaned = '';
+      for (let i = 0; i < subChap.length; i++) {
+        if (subChap[i] === '.') {
+          cleaned += '.'; // Add the dot
+          // Check if the next character is a space
+          if (subChap[i + 1] === ' ') {
+            i++; // Skip the space
+          }
+        } else {
+          cleaned += subChap[i]; // Add the current character
+        }
+      }
+      formattedChapters.push(cleaned.trim()); // Trim and add to the result
+    }
+
+    return formattedChapters;
+  }
+
+  let cleanedSubChaps = formatSubChapters(subChapters);
+
+  let pages = structureMainChapter();
+  console.log(cleanedSubChaps);
+
   // Return the original table of contents array
   return tocArray;
 };
