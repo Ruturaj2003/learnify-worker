@@ -1,46 +1,27 @@
 const { PDFDocument } = require('pdf-lib');
 
 module.exports = async function parseTOCPages(pdfBuffer, tocTexts) {
-  // Convert text to array of lines and clean up whitespace
-  let tocArray = convertToArray(tocTexts);
-  tocArray = tocArray.map((text) => text.trim());
-
-  // Merge lines like "11. ", "Electromagnetism 328"
+  let tocArray = convertToArray(tocTexts).map((text) => text.trim());
   tocArray = mergeNumberedLines(tocArray);
 
-  // Process chapter titles to remove unwanted dots, spaces, and adjust formatting
-  let chapterTitles = tocArray.filter(scanForChapterTitle);
-  chapterTitles = chapterTitles.map((text) => {
-    let modifiedText = removeDots(text);
-    let modifiedText2 = removeExtraSpaces(modifiedText);
-    let modifiedText3 = adjustSpacing(modifiedText2);
-    return modifiedText3.trim(); // Remove leading/trailing whitespace
-  });
+  let chapterTitles = tocArray
+    .filter(scanForChapterTitle)
+    .map((text) => adjustSpacing(removeExtraSpaces(removeDots(text))).trim());
 
-  // Extract main chapters (with 1 or 2 digit numbers followed by an alphabet)
   let mainChapters = [...new Set(chapterTitles.filter(extractMainChapters))];
-
-  // Extract sub-chapters that are not in the main chapters
   let subChapters = chapterTitles.filter(extractSubChapters);
 
-  // Function to convert string chunks into an array
   function convertToArray(tocTexts) {
-    let result = [];
-    for (let i = 0; i < tocTexts.length; i++) {
-      const text = tocTexts[i];
-      result = result.concat(text.split('\n'));
-    }
-    return result;
+    return tocTexts.flatMap((text) => text.split('\n'));
   }
 
-  // Function to merge numbered lines like "11. ", "Electromagnetism 328"
   function mergeNumberedLines(arr) {
     let result = [];
     for (let i = 0; i < arr.length; i++) {
       let current = arr[i];
       if (/^\d+\.\s*$/.test(current) && i < arr.length - 1) {
         result.push(current + arr[i + 1]);
-        i++; // Skip the next one since it's merged
+        i++;
       } else {
         result.push(current);
       }
@@ -48,246 +29,291 @@ module.exports = async function parseTOCPages(pdfBuffer, tocTexts) {
     return result;
   }
 
-  // Filter chapter titles that start and end with a number
   function scanForChapterTitle(text) {
-    const regex = /^(\d.*\d|chapter\s\d{1,2})$/i;
-
-    return regex.test(text);
+    return /^(\d.*\d|chapter\s\d{1,2})$/i.test(text);
   }
 
-  // Remove dots after the 4th character
   function removeDots(str) {
-    let before4thChar = str.slice(0, 4);
-    let after4thChar = str.slice(4);
-    after4thChar = after4thChar.replace(/\./g, '');
-    return before4thChar + after4thChar;
+    return str.slice(0, 4) + str.slice(4).replace(/\./g, '');
   }
 
-  // Remove extra spaces (spaces, tabs, newlines) and trim the string
   function removeExtraSpaces(str) {
     return str.replace(/\s+/g, ' ').trim();
   }
 
-  // Adjust spacing between numbers and letters
   function adjustSpacing(str) {
     let i = str.length - 1;
     while (i >= 0) {
-      if (/\d/.test(str[i])) {
-        if (
-          /\d/.test(str[i - 1]) ||
-          /\s/.test(str[i - 1]) ||
-          /\t/.test(str[i - 1])
-        ) {
-          i--;
-          continue;
-        } else {
-          str = str.slice(0, i) + ' ' + str.slice(i);
-          break;
-        }
+      if (/\d/.test(str[i]) && !/\d|\s/.test(str[i - 1])) {
+        return str.slice(0, i) + ' ' + str.slice(i);
       }
       i--;
     }
     return str;
   }
 
-  // Extract main chapters (numbers followed by alphabet)
   function extractMainChapters(text) {
-    const regex = /^\d{1,2}[.\s][A-Za-z]/;
-    return regex.test(text);
+    return /^\d{1,2}[.\s][A-Za-z]/.test(text);
   }
 
-  // Extract sub-chapters (anything not in main chapters)
   function extractSubChapters(text) {
-    if (mainChapters.includes(text)) {
-      return false;
-    } else {
-      return true;
-    }
+    return !mainChapters.includes(text);
   }
 
   function segementSubChapters() {
-    let groupedChapters = {};
-
+    let grouped = {};
     for (let main of mainChapters) {
-      let mainNumber = main.match(/^\d+/)[0]; // e.g., "1" from "1. Introduction"
-      groupedChapters[main] = subChapters.filter((sub) =>
+      let mainNumber = main.match(/^\d+/)[0];
+      grouped[main] = subChapters.filter((sub) =>
         sub.startsWith(mainNumber + '.')
       );
     }
-
-    return groupedChapters;
+    return grouped;
   }
 
-  // Calc the last page :
   async function calcLastPage() {
-    let pdfDoc;
-
     try {
-      pdfDoc = await PDFDocument.load(pdfBuffer);
-    } catch (err) {
+      const pdfDoc = await PDFDocument.load(pdfBuffer);
+      return pdfDoc.getPageCount();
+    } catch {
       return [];
     }
-
-    return pdfDoc.getPageCount();
   }
 
   const grpChapters = segementSubChapters();
-
-  // Debug: Output sub-chapters to the console
-  // console.log(JSON.stringify(mainChapters, null, 2));
   const lastPage = await calcLastPage();
-  console.log(grpChapters);
+  let cleanedSubChaps = formatSubChapters(subChapters);
 
-  // Add Start Page and End Page To Main Chapters and the structure
   function structureMainChapter() {
-    let length = mainChapters.length;
-    let structedChapters = [];
-
-    for (let i = 0; i < length; i++) {
+    let result = [];
+    for (let i = 0; i < mainChapters.length; i++) {
       let current = mainChapters[i];
-
-      // Extract chapter number
       let chapterMatch = current.match(/^\d+/);
       let chapterNum = chapterMatch ? Number(chapterMatch[0]) : null;
 
-      // Extract title
       let title = current
         .replace(/^\d+\s*/, '')
         .replace(/\s*\d+$/, '')
         .trim();
-
-      // Start page
       let startMatch = current.match(/\d+$/);
       let startPage = startMatch ? Number(startMatch[0]) : null;
-      if (i === 0 && startPage > 15) {
-        continue;
-      }
 
-      // End page
-      let endPage;
-      if (i === length - 1) {
-        endPage = Number(lastPage); // `lastPage` should be defined somewhere
-      } else {
-        let nextMatch = mainChapters[i + 1].match(/\d+$/);
-        endPage = nextMatch ? Number(nextMatch[0]) : null;
-      }
+      if (i === 0 && startPage > 15) continue;
+
+      let endPage =
+        i === mainChapters.length - 1
+          ? Number(lastPage)
+          : Number(mainChapters[i + 1].match(/\d+$/)?.[0]);
+
       title = title.replace(/^\./, '').trim();
 
-      // Final object
-      let ChapData = {
+      result.push({
         ChapterName: title,
         ChapterNumber: chapterNum,
         StartPage: startPage,
         EndPage: endPage,
-      };
-
-      structedChapters.push(ChapData);
+      });
     }
+    return result;
+  }
+  function structureChapter(chapterArray) {
+    let result = [];
+    for (let i = 0; i < chapterArray.length; i++) {
+      let current = chapterArray[i];
+      let chapterMatch = current.match(/^\d+/);
+      let chapterNum = chapterMatch ? Number(chapterMatch[0]) : null;
 
-    return structedChapters;
+      let title = current
+        .replace(/^\d+\s*/, '')
+        .replace(/\s*\d+$/, '')
+        .trim();
+      let startMatch = current.match(/\d+$/);
+      let startPage = startMatch ? Number(startMatch[0]) : null;
+
+      if (i === 0 && startPage > 15) continue;
+
+      let endPage =
+        i === chapterArray.length - 1
+          ? Number(lastPage)
+          : Number(chapterArray[i + 1].match(/\d+$/)?.[0]);
+
+      title = title.replace(/^\./, '').trim();
+
+      result.push({
+        ChapterName: title,
+        ChapterNumber: chapterNum,
+        StartPage: startPage,
+        EndPage: endPage,
+      });
+    }
+    return result;
+  }
+
+  function structureSubChapter() {
+    let result = [];
+    for (let i = 0; i < cleanedSubChaps.length; i++) {
+      let current = cleanedSubChaps[i];
+      let chapterMatch = current.match(/^\d+/);
+      let chapterNum = chapterMatch ? Number(chapterMatch[0]) : null;
+
+      let title = current
+        .replace(/^\d+\s*/, '')
+        .replace(/\s*\d+$/, '')
+        .trim();
+      let startMatch = current.match(/\d+$/);
+      let startPage = startMatch ? Number(startMatch[0]) : null;
+
+      if (i === 0 && startPage > 15) continue;
+
+      let endPage =
+        i === subChapters.length - 1
+          ? Number(lastPage)
+          : Number(subChapters[i + 1].match(/\d+$/)?.[0]);
+
+      title = title.replace(/^\./, '').trim();
+
+      result.push({
+        ChapterName: title,
+        ChapterNumber: chapterNum,
+        StartPage: startPage,
+        EndPage: endPage,
+      });
+    }
+    return result;
   }
 
   function formatSubChapters(subChapters) {
-    let formattedChapters = [];
-
-    for (let subChap of subChapters) {
+    return subChapters.map((subChap) => {
       let cleaned = '';
       for (let i = 0; i < subChap.length; i++) {
         if (subChap[i] === '.') {
-          cleaned += '.'; // Add the dot
-          // Check if the next character is a space
-          if (subChap[i + 1] === ' ') {
-            i++; // Skip the space
-          }
+          cleaned += '.';
+          if (subChap[i + 1] === ' ') i++;
         } else {
-          cleaned += subChap[i]; // Add the current character
+          cleaned += subChap[i];
         }
       }
-      formattedChapters.push(cleaned.trim()); // Trim and add to the result
-    }
-
-    return formattedChapters;
+      return cleaned.trim();
+    });
   }
 
-  function extractOnlySubChapters(subChapters) {}
-
-  let cleanedSubChaps = formatSubChapters(subChapters);
-
-  let pages = structureMainChapter();
-  console.log(subChapters);
   function handleNonIdentifiedChapterList() {
     let startPage = null;
     let endPage = null;
     let pages = [];
-    let startwith1 = /^1(?!\d)/;
     let chapterCount = 1;
+    let startwith1 = /^1(?!\d)/;
 
     if (mainChapters.length === 0) {
       for (let i = 0; i < subChapters.length; i++) {
-        let startNum = /^\d{1,2}/;
-
-        // Get current chapter number
-        let temp1 = subChapters[i].match(startNum);
+        let temp1 = subChapters[i].match(/^\d{1,2}/);
         let currentChapterNum = temp1 ? temp1[0] : null;
 
-        // Get next chapter number
-        let nextChapterNum;
-        if (i + 1 >= subChapters.length) {
-          nextChapterNum = -1;
-        } else {
-          let temp2 = subChapters[i + 1].match(startNum);
-          nextChapterNum = temp2 ? temp2[0] : null;
-        }
+        let nextChapterNum =
+          i + 1 >= subChapters.length
+            ? -1
+            : subChapters[i + 1].match(/^\d{1,2}/)?.[0] ?? null;
 
-        // If line starts with 1, get startPage
         if (startwith1.test(subChapters[i])) {
-          let startMatch = subChapters[i].match(/\d+$/);
-          startPage = startMatch ? startMatch[0] : null;
+          startPage = subChapters[i].match(/\d+$/)?.[0] ?? null;
         }
 
-        // If it's the last subChapter or chapter number decreases, set endPage and store chapter
         if (nextChapterNum === -1 || nextChapterNum < currentChapterNum) {
-          let lastMatch = subChapters[i].match(/\d+$/);
-          endPage = lastMatch ? lastMatch[0] : null;
-
-          let ChapData = {
+          endPage = subChapters[i].match(/\d+$/)?.[0] ?? null;
+          pages.push({
             ChapterName: `Chapter ${chapterCount}`,
             ChapterNumber: chapterCount,
             StartPage: startPage,
             EndPage: endPage,
-          };
-
-          pages.push(ChapData);
-          chapterCount += 1;
+          });
+          chapterCount++;
         }
       }
     }
 
     return pages;
   }
+  function extractCombinedChapterNumber(text) {
+    if (typeof text !== 'string') {
+      return null; // or handle it however makes sense for your logic
+    }
+    const match = text.match(/^(\d+(?:\.\d+)*)(?!\d)/);
 
-  pages = handleNonIdentifiedChapterList();
-  console.log(pages);
+    if (!match) return null;
 
-  // Return the original table of contents array
+    // Remove all dots and return as a number
+    const combined = match[1].replace(/\./g, '');
+    return Number(combined);
+  }
+
+  function filterDirectSubChapters(subChapters) {
+    let result = [];
+    let i = 0;
+
+    while (i < subChapters.length) {
+      let current = subChapters[i];
+      let currentNumber = extractCombinedChapterNumber(current);
+      if (currentNumber == null) {
+        break;
+      }
+      let checkVal = currentNumber + 1;
+      let found = false;
+      console.log(currentNumber);
+      console.error(checkVal + 100000);
+
+      for (let j = i; j < subChapters.length; j++) {
+        let next = subChapters[j];
+        let nextNumber = extractCombinedChapterNumber(next);
+
+        if (checkVal === nextNumber) {
+          result.push(subChapters[j]); // Add the current chapter
+          i = j; // Move to the next matched subchapter
+          found = true;
+          break;
+        }
+      }
+
+      // if (!found) {
+      //   for (let j = i; j < subChapters.length; j++) {}
+      // }
+      if (!found) {
+        // Try to skip ahead if the next chapter is way off
+
+        for (let j = i; j < subChapters.length; j++) {
+          let next = subChapters[j + 1];
+          let nextNumber = extractCombinedChapterNumber(next);
+
+          if (Math.abs(currentNumber - nextNumber) <= 80) {
+            console.log('Break Here ' + currentNumber);
+            result.push(subChapters[i]);
+            i = j; // Move to the next closer chapter
+            break;
+          }
+        }
+
+        // If no closer chapter is found, just move one step
+        i++;
+      }
+    }
+
+    return result;
+  }
+
+  if (mainChapters.length === 0) {
+    structureMainChapter = handleNonIdentifiedChapterList();
+  } else {
+    structureMainChapter = structureChapter(mainChapters);
+  }
+
+  // cleanedSubChaps = cleanedSubChaps.filter(removeSubSubChapters);
+  let dota = filterDirectSubChapters(cleanedSubChaps);
+  console.log('GG');
+
+  console.dir(dota, { depth: null });
+
   return tocArray;
 };
 
-// TODO : 4 : Add first and Last Pages
-// Check if the last entry has abrud number , remove it
-// Check if the next entry is not there use the last page
-// Check if the next entry has absurd number use the last page
-//  Since here there is no access to the lib we wont know the last page or i could just use it here amd calc it , seems better that way
+//TODO : Check if there are 2 digits after the dots , if yes then extract those number or just double clean after this when they are like this trackt he current number then check if u sub it by 0.1 will u get the prev chapter number if  yes take , use a while loop and check when it goes there change the index to that one and save  ie: ......................................................While loop starts with 1 , save the first entry then use a for loop in it start with i then check when u get the index where if u add 0.1 to the current chapter number , it will be same as the next chapter number , now the next one is found so change the index of i to it , then it gets saved
 
-// TODO: 5 : How will u save and group those segements ?
-
-// TODO 6 : Handle without main chapters
-// Its only temp , make the chapters
-
-// TODO : 6 : Handle with or without subchapters
-// Chek the first 3 array if they length then it will be with no subchapters
-
-// Pass the object of split chapters so it will know if no subchapters it will have to scan the chapters and spilt them and save them , Dam Boii its getting Tougher and complex by the minute
-
-// TODO :  7 : Handle the format of Chapter x : asdasd
-1;
+// TODO Handle if the start values is big ,it messes up stuff bc
