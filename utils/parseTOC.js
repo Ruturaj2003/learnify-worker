@@ -208,10 +208,12 @@ module.exports = async function parseTOCPages(pdfBuffer, tocTexts) {
     return formattedChapters;
   }
 
+  function extractOnlySubChapters(subChapters) {}
+
   let cleanedSubChaps = formatSubChapters(subChapters);
 
   let pages = structureMainChapter();
-  console.log(cleanedSubChaps);
+  console.log(mainChapters);
 
   // Return the original table of contents array
   return tocArray;
