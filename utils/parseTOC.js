@@ -50,7 +50,8 @@ module.exports = async function parseTOCPages(pdfBuffer, tocTexts) {
 
   // Filter chapter titles that start and end with a number
   function scanForChapterTitle(text) {
-    const regex = /^\d.*\d$/;
+    const regex = /^(\d.*\d|chapter\s\d{1,2})$/i;
+
     return regex.test(text);
   }
 
@@ -213,7 +214,60 @@ module.exports = async function parseTOCPages(pdfBuffer, tocTexts) {
   let cleanedSubChaps = formatSubChapters(subChapters);
 
   let pages = structureMainChapter();
-  console.log(mainChapters);
+  console.log(subChapters);
+  function handleNonIdentifiedChapterList() {
+    let startPage = null;
+    let endPage = null;
+    let pages = [];
+    let startwith1 = /^1(?!\d)/;
+    let chapterCount = 1;
+
+    if (mainChapters.length === 0) {
+      for (let i = 0; i < subChapters.length; i++) {
+        let startNum = /^\d{1,2}/;
+
+        // Get current chapter number
+        let temp1 = subChapters[i].match(startNum);
+        let currentChapterNum = temp1 ? temp1[0] : null;
+
+        // Get next chapter number
+        let nextChapterNum;
+        if (i + 1 >= subChapters.length) {
+          nextChapterNum = -1;
+        } else {
+          let temp2 = subChapters[i + 1].match(startNum);
+          nextChapterNum = temp2 ? temp2[0] : null;
+        }
+
+        // If line starts with 1, get startPage
+        if (startwith1.test(subChapters[i])) {
+          let startMatch = subChapters[i].match(/\d+$/);
+          startPage = startMatch ? startMatch[0] : null;
+        }
+
+        // If it's the last subChapter or chapter number decreases, set endPage and store chapter
+        if (nextChapterNum === -1 || nextChapterNum < currentChapterNum) {
+          let lastMatch = subChapters[i].match(/\d+$/);
+          endPage = lastMatch ? lastMatch[0] : null;
+
+          let ChapData = {
+            ChapterName: `Chapter ${chapterCount}`,
+            ChapterNumber: chapterCount,
+            StartPage: startPage,
+            EndPage: endPage,
+          };
+
+          pages.push(ChapData);
+          chapterCount += 1;
+        }
+      }
+    }
+
+    return pages;
+  }
+
+  pages = handleNonIdentifiedChapterList();
+  console.log(pages);
 
   // Return the original table of contents array
   return tocArray;
@@ -227,7 +281,13 @@ module.exports = async function parseTOCPages(pdfBuffer, tocTexts) {
 
 // TODO: 5 : How will u save and group those segements ?
 
+// TODO 6 : Handle without main chapters
+// Its only temp , make the chapters
+
 // TODO : 6 : Handle with or without subchapters
 // Chek the first 3 array if they length then it will be with no subchapters
 
 // Pass the object of split chapters so it will know if no subchapters it will have to scan the chapters and spilt them and save them , Dam Boii its getting Tougher and complex by the minute
+
+// TODO :  7 : Handle the format of Chapter x : asdasd
+1;
