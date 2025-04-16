@@ -1,16 +1,59 @@
 const { PDFDocument } = require('pdf-lib');
 
 module.exports = async function parseTOCPages(pdfBuffer, tocTexts) {
+  // Convert TOC text blocks into an array of trimmed lines
   let tocArray = convertToArray(tocTexts).map((text) => text.trim());
+
+  // Merge lines where chapter numbers are on a separate line
   tocArray = mergeNumberedLines(tocArray);
 
+  // Clean and extract valid chapter title lines
   let chapterTitles = tocArray
     .filter(scanForChapterTitle)
     .map((text) => adjustSpacing(removeExtraSpaces(removeDots(text))).trim());
 
+  // Separate main chapters and subchapters
   let mainChapters = [...new Set(chapterTitles.filter(extractMainChapters))];
   let subChapters = chapterTitles.filter(extractSubChapters);
 
+  // Group subchapters under their main chapters
+  const grpChapters = uniteChaptersData();
+
+  // Get total number of pages in the PDF
+  const lastPage = await calcLastPage();
+
+  // Clean subchapter formatting and remove non-starting ones
+  let cleanedSubChaps = formatSubChapters(subChapters);
+
+  // Prepare variables for final structured output
+  let structuredMainChapters;
+  let structuredSubChapters;
+
+  // Handle edge case when no main chapters are found
+  if (mainChapters.length === 0) {
+    structuredMainChapters = handleNonIdentifiedChapterList(cleanedSubChaps);
+  } else {
+    structuredMainChapters = structureMainChapter(mainChapters);
+    cleanedSubChaps = filterDirectSubChapters(cleanedSubChaps);
+  }
+
+  // Filter only direct subchapters (like 1.1, 1.2, etc.)
+
+  // Structure cleaned subchapters into proper objects with page info
+  structuredSubChapters = structureSubChapter(cleanedSubChaps);
+
+  // Debug: print structured chapter info
+  console.dir(structuredMainChapters, { depth: null });
+  console.dir(cleanedSubChaps, { depth: null });
+
+  return tocArray;
+  // TODO : Just here for separtaion ------------------------
+
+  // -------------------Functions Area ---------------------
+  // =========================================================
+
+  // =========================================================
+  // TODO : XOXOXOXOXOXOXOXOOXOOOOOOOOOOXXXXXXXXXXXXXXXXXOOOOOOO
   function convertToArray(tocTexts) {
     return tocTexts.flatMap((text) => text.split('\n'));
   }
@@ -60,7 +103,7 @@ module.exports = async function parseTOCPages(pdfBuffer, tocTexts) {
     return !mainChapters.includes(text);
   }
 
-  function segementSubChapters() {
+  function uniteChaptersData() {
     let grouped = {};
     for (let main of mainChapters) {
       let mainNumber = main.match(/^\d+/)[0];
@@ -79,12 +122,7 @@ module.exports = async function parseTOCPages(pdfBuffer, tocTexts) {
       return [];
     }
   }
-
-  const grpChapters = segementSubChapters();
-  const lastPage = await calcLastPage();
-  let cleanedSubChaps = formatSubChapters(subChapters);
-
-  function structureMainChapter() {
+  function structureMainChapter(mainChapters) {
     let result = [];
     for (let i = 0; i < mainChapters.length; i++) {
       let current = mainChapters[i];
@@ -97,62 +135,36 @@ module.exports = async function parseTOCPages(pdfBuffer, tocTexts) {
         .trim();
       let startMatch = current.match(/\d+$/);
       let startPage = startMatch ? Number(startMatch[0]) : null;
+      if (startMatch > lastPage) {
+        break;
+      }
 
       if (i === 0 && startPage > 15) continue;
 
       let endPage =
         i === mainChapters.length - 1
-          ? Number(lastPage)
-          : Number(mainChapters[i + 1].match(/\d+$/)?.[0]);
+          ? Number(lastPage - 10)
+          : Number(mainChapters[i + 1].match(/\d+$/)?.[0]) - 1;
+      if (endPage > lastPage) {
+        endPage = lastPage;
+      }
 
       title = title.replace(/^\./, '').trim();
 
       result.push({
         ChapterName: title,
         ChapterNumber: chapterNum,
-        StartPage: startPage,
-        EndPage: endPage,
-      });
-    }
-    return result;
-  }
-  function structureChapter(chapterArray) {
-    let result = [];
-    for (let i = 0; i < chapterArray.length; i++) {
-      let current = chapterArray[i];
-      let chapterMatch = current.match(/^\d+/);
-      let chapterNum = chapterMatch ? Number(chapterMatch[0]) : null;
-
-      let title = current
-        .replace(/^\d+\s*/, '')
-        .replace(/\s*\d+$/, '')
-        .trim();
-      let startMatch = current.match(/\d+$/);
-      let startPage = startMatch ? Number(startMatch[0]) : null;
-
-      if (i === 0 && startPage > 15) continue;
-
-      let endPage =
-        i === chapterArray.length - 1
-          ? Number(lastPage)
-          : Number(chapterArray[i + 1].match(/\d+$/)?.[0]);
-
-      title = title.replace(/^\./, '').trim();
-
-      result.push({
-        ChapterName: title,
-        ChapterNumber: chapterNum,
-        StartPage: startPage,
-        EndPage: endPage,
+        StartPage: Number(startPage),
+        EndPage: Number(endPage),
       });
     }
     return result;
   }
 
-  function structureSubChapter() {
+  function structureSubChapter(subChapters) {
     let result = [];
-    for (let i = 0; i < cleanedSubChaps.length; i++) {
-      let current = cleanedSubChaps[i];
+    for (let i = 0; i < subChapters.length; i++) {
+      let current = subChapters[i];
       let chapterMatch = current.match(/^\d+/);
       let chapterNum = chapterMatch ? Number(chapterMatch[0]) : null;
 
@@ -167,7 +179,7 @@ module.exports = async function parseTOCPages(pdfBuffer, tocTexts) {
 
       let endPage =
         i === subChapters.length - 1
-          ? Number(lastPage)
+          ? Number(lastPage - 10)
           : Number(subChapters[i + 1].match(/\d+$/)?.[0]);
 
       title = title.replace(/^\./, '').trim();
@@ -175,13 +187,12 @@ module.exports = async function parseTOCPages(pdfBuffer, tocTexts) {
       result.push({
         ChapterName: title,
         ChapterNumber: chapterNum,
-        StartPage: startPage,
-        EndPage: endPage,
+        StartPage: Number(startPage),
+        EndPage: Number(endPage),
       });
     }
     return result;
   }
-
   function formatSubChapters(subChapters) {
     let cleanedChap = subChapters.map((subChap) => {
       let cleaned = '';
@@ -200,8 +211,7 @@ module.exports = async function parseTOCPages(pdfBuffer, tocTexts) {
     }
     return cleanedChap;
   }
-
-  function handleNonIdentifiedChapterList() {
+  function handleNonIdentifiedChapterList(subChapters) {
     let startPage = null;
     let endPage = null;
     let pages = [];
@@ -222,13 +232,24 @@ module.exports = async function parseTOCPages(pdfBuffer, tocTexts) {
           startPage = subChapters[i].match(/\d+$/)?.[0] ?? null;
         }
 
-        if (nextChapterNum === -1 || nextChapterNum < currentChapterNum) {
+        if (nextChapterNum === -1) {
           endPage = subChapters[i].match(/\d+$/)?.[0] ?? null;
           pages.push({
             ChapterName: `Chapter ${chapterCount}`,
             ChapterNumber: chapterCount,
-            StartPage: startPage,
-            EndPage: endPage,
+            StartPage: Number(startPage),
+            EndPage: endPage + 4,
+          });
+          chapterCount++;
+        }
+        if (nextChapterNum < currentChapterNum) {
+          let nextLine = subChapters[i + 1];
+          endPage = nextLine?.match(/\d+$/)?.[0] ?? null;
+          pages.push({
+            ChapterName: `Chapter ${chapterCount}`,
+            ChapterNumber: chapterCount,
+            StartPage: Number(startPage),
+            EndPage: endPage - 1,
           });
           chapterCount++;
         }
@@ -249,7 +270,6 @@ module.exports = async function parseTOCPages(pdfBuffer, tocTexts) {
     const combined = match[1].replace(/\./g, '');
     return Number(combined);
   }
-
   function filterDirectSubChapters(subChapters) {
     let result = [];
     let i = 0;
@@ -262,8 +282,6 @@ module.exports = async function parseTOCPages(pdfBuffer, tocTexts) {
       }
       let checkVal = currentNumber + 1;
       let found = false;
-      console.log(currentNumber);
-      console.error(checkVal + 100000);
 
       for (let j = i; j < subChapters.length; j++) {
         let next = subChapters[j];
@@ -288,7 +306,6 @@ module.exports = async function parseTOCPages(pdfBuffer, tocTexts) {
           let nextNumber = extractCombinedChapterNumber(next);
 
           if (Math.abs(currentNumber - nextNumber) <= 80) {
-            console.log('Break Here ' + currentNumber);
             i = j; // Move to the next closer chapter
             break;
           }
@@ -301,22 +318,4 @@ module.exports = async function parseTOCPages(pdfBuffer, tocTexts) {
 
     return result;
   }
-  let structuredMainChapters;
-  let strucrturedSubChapters;
-
-  if (mainChapters.length === 0) {
-    structuredMainChapters = handleNonIdentifiedChapterList();
-  } else {
-    structuredMainChapters = structureChapter(mainChapters);
-  }
-
-  // cleanedSubChaps = cleanedSubChaps.filter(removeSubSubChapters);
-  cleandSubChaps = filterDirectSubChapters(cleanedSubChaps);
-
-  strucrturedSubChapters = structureChapter(cleanedSubChaps);
-
-  console.dir(structuredMainChapters, { depth: null });
-  console.dir(strucrturedSubChapters, { depth: null });
-
-  return tocArray;
 };
