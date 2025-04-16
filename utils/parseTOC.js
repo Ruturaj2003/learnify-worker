@@ -32,19 +32,26 @@ module.exports = async function parseTOCPages(pdfBuffer, tocTexts) {
   // Handle edge case when no main chapters are found
   if (mainChapters.length === 0) {
     structuredMainChapters = handleNonIdentifiedChapterList(cleanedSubChaps);
+    structuredSubChapters = structureSubChapterForNonIdentifiedChapterList(
+      cleanedSubChaps,
+      lastPage
+    );
   } else {
     structuredMainChapters = structureMainChapter(mainChapters);
     cleanedSubChaps = filterDirectSubChapters(cleanedSubChaps);
+    structuredSubChapters = structureSubChapter(cleanedSubChaps, lastPage);
   }
 
   // Filter only direct subchapters (like 1.1, 1.2, etc.)
 
   // Structure cleaned subchapters into proper objects with page info
-  structuredSubChapters = structureSubChapter(cleanedSubChaps);
 
   // Debug: print structured chapter info
-  console.dir(structuredMainChapters, { depth: null });
-  console.dir(cleanedSubChaps, { depth: null });
+  console.dir(structuredSubChapters, {
+    depth: null,
+    colors: true,
+  });
+  // console.dir(cleanedSubChaps, { depth: null });
 
   return tocArray;
   // TODO : Just here for separtaion ------------------------
@@ -161,20 +168,23 @@ module.exports = async function parseTOCPages(pdfBuffer, tocTexts) {
     return result;
   }
 
-  function structureSubChapter(subChapters) {
+  function structureSubChapter(subChapters, lastPage) {
     let result = [];
+
     for (let i = 0; i < subChapters.length; i++) {
       let current = subChapters[i];
       let chapterMatch = current.match(/^\d+/);
       let chapterNum = chapterMatch ? Number(chapterMatch[0]) : null;
 
       let title = current
-        .replace(/^\d+\s*/, '')
-        .replace(/\s*\d+$/, '')
+        .replace(/^\d+\s*/, '') // remove the leading chapter number
+        .replace(/\s*\d+$/, '') // remove the trailing page number
         .trim();
+
       let startMatch = current.match(/\d+$/);
       let startPage = startMatch ? Number(startMatch[0]) : null;
 
+      // Skip subchapter if the startPage is higher than 15 for the first entry
       if (i === 0 && startPage > 15) continue;
 
       let endPage =
@@ -184,15 +194,30 @@ module.exports = async function parseTOCPages(pdfBuffer, tocTexts) {
 
       title = title.replace(/^\./, '').trim();
 
-      result.push({
-        ChapterName: title,
-        ChapterNumber: chapterNum,
-        StartPage: Number(startPage),
-        EndPage: Number(endPage),
-      });
+      // Check if this chapter already exists in the result to prevent duplicates
+      const duplicate = result.some(
+        (item) =>
+          item.ChapterName === title &&
+          item.StartPage === startPage &&
+          item.EndPage === endPage
+      );
+
+      if (!duplicate) {
+        if (Number.isNaN(endPage)) {
+          endPage = Number(lastPage) - 10;
+        }
+        result.push({
+          ChapterName: title,
+          ChapterNumber: chapterNum,
+          StartPage: Number(startPage),
+          EndPage: Number(endPage),
+        });
+      }
     }
+
     return result;
   }
+
   function formatSubChapters(subChapters) {
     let cleanedChap = subChapters.map((subChap) => {
       let cleaned = '';
@@ -210,53 +235,6 @@ module.exports = async function parseTOCPages(pdfBuffer, tocTexts) {
       cleanedChap.shift();
     }
     return cleanedChap;
-  }
-  function handleNonIdentifiedChapterList(subChapters) {
-    let startPage = null;
-    let endPage = null;
-    let pages = [];
-    let chapterCount = 1;
-    let startwith1 = /^1(?!\d)/;
-
-    if (mainChapters.length === 0) {
-      for (let i = 0; i < subChapters.length; i++) {
-        let temp1 = subChapters[i].match(/^\d{1,2}/);
-        let currentChapterNum = temp1 ? temp1[0] : null;
-
-        let nextChapterNum =
-          i + 1 >= subChapters.length
-            ? -1
-            : subChapters[i + 1].match(/^\d{1,2}/)?.[0] ?? null;
-
-        if (startwith1.test(subChapters[i])) {
-          startPage = subChapters[i].match(/\d+$/)?.[0] ?? null;
-        }
-
-        if (nextChapterNum === -1) {
-          endPage = subChapters[i].match(/\d+$/)?.[0] ?? null;
-          pages.push({
-            ChapterName: `Chapter ${chapterCount}`,
-            ChapterNumber: chapterCount,
-            StartPage: Number(startPage),
-            EndPage: endPage + 4,
-          });
-          chapterCount++;
-        }
-        if (nextChapterNum < currentChapterNum) {
-          let nextLine = subChapters[i + 1];
-          endPage = nextLine?.match(/\d+$/)?.[0] ?? null;
-          pages.push({
-            ChapterName: `Chapter ${chapterCount}`,
-            ChapterNumber: chapterCount,
-            StartPage: Number(startPage),
-            EndPage: endPage - 1,
-          });
-          chapterCount++;
-        }
-      }
-    }
-
-    return pages;
   }
   function extractCombinedChapterNumber(text) {
     if (typeof text !== 'string') {
@@ -318,4 +296,109 @@ module.exports = async function parseTOCPages(pdfBuffer, tocTexts) {
 
     return result;
   }
+
+  // For the Annoying Book That have name as Chpater 12 sadas abd cant be detecteed YET!!!
+  // X-------------X-----------------------X------------------X
+
+  function handleNonIdentifiedChapterList(subChapters) {
+    let startPage = null;
+    let endPage = null;
+    let pages = [];
+    let chapterCount = 1;
+    let startwith1 = /^1(?!\d)/;
+
+    if (mainChapters.length === 0) {
+      for (let i = 0; i < subChapters.length; i++) {
+        let temp1 = subChapters[i].match(/^\d{1,2}/);
+        let currentChapterNum = temp1 ? temp1[0] : null;
+
+        let nextChapterNum =
+          i + 1 >= subChapters.length
+            ? -1
+            : subChapters[i + 1].match(/^\d{1,2}/)?.[0] ?? null;
+
+        if (startwith1.test(subChapters[i])) {
+          startPage = subChapters[i].match(/\d+$/)?.[0] ?? null;
+        }
+
+        if (nextChapterNum === -1) {
+          endPage = subChapters[i].match(/\d+$/)?.[0] ?? null;
+          pages.push({
+            ChapterName: `Chapter ${chapterCount}`,
+            ChapterNumber: chapterCount,
+            StartPage: Number(startPage),
+            EndPage: endPage + 4,
+          });
+          chapterCount++;
+        }
+        if (nextChapterNum < currentChapterNum) {
+          let nextLine = subChapters[i + 1];
+          endPage = nextLine?.match(/\d+$/)?.[0] ?? null;
+          pages.push({
+            ChapterName: `Chapter ${chapterCount}`,
+            ChapterNumber: chapterCount,
+            StartPage: Number(startPage),
+            EndPage: endPage - 1,
+          });
+          chapterCount++;
+        }
+      }
+    }
+
+    return pages;
+  }
+
+  function structureSubChapterForNonIdentifiedChapterList(
+    subChapters,
+    lastPage
+  ) {
+    let result = [];
+    let chapterCount = 1;
+
+    for (let i = 0; i < subChapters.length; i++) {
+      let line = subChapters[i]; // use full line
+      let current = line.match(/^\d+/)?.[0];
+
+      if (!current) continue;
+
+      let chapterNum = chapterCount;
+
+      if (i + 1 < subChapters.length) {
+        let next = subChapters[i + 1].match(/^\d+/)?.[0];
+        if (next && Number(next) < Number(current)) {
+          chapterCount += 1;
+        }
+      }
+
+      let title = line
+        .replace(/\s*\d+$/, '') // remove number at end (likely page number)
+        .trim();
+      // remove number at start
+
+      let startMatch = line.match(/\d+$/);
+      let startPage = startMatch ? Number(startMatch[0]) : null;
+
+      if (i === 0 && startPage > 15) continue;
+
+      let endPage =
+        i === subChapters.length - 1
+          ? Number(lastPage - 10)
+          : Number(subChapters[i + 1].match(/\d+$/)?.[0]);
+
+      title = title.replace(/^\./, '').trim();
+
+      result.push({
+        ChapterName: `${title}`,
+        ChapterNumber: chapterNum,
+        StartPage: startPage,
+        EndPage: endPage,
+      });
+    }
+
+    return result;
+  }
+
+  // X-------------X-----------------------X------------------X
 };
+
+// TODO : 1 : Make a New Structure Function for the sub chapters to have Proper Chapter Numbers
