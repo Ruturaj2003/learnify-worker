@@ -1,4 +1,4 @@
-const Segment = require('../models/Segment'); // Mongoose model for saving chapters
+const Chapters = require('../models/Chapter'); // Mongoose model for saving chapters
 
 /**
  * Saves the parsed chapters to the Segment model.
@@ -18,12 +18,12 @@ module.exports = async function saveChapters(chapterBuffers, bookId) {
       const content = await extractTextFromPDFBuffer(buffer);
 
       // Create a new segment (chapter) in the database
-      const segment = new Segment({
-        book: bookId, // Reference to the book being processed
-        title,
-        content, // Chapter content (text extracted from PDF)
-        order: i + 1, // Order of the chapter based on its position in the TOC
-      });
+      // const segment = new Segment({
+      //   book: bookId, // Reference to the book being processed
+      //   title,
+      //   content, // Chapter content (text extracted from PDF)
+      //   order: i + 1, // Order of the chapter based on its position in the TOC
+      // });
 
       // Save the segment to the database
       await segment.save();

@@ -7,7 +7,7 @@ module.exports = async function extractPages(pdfBuffer) {
   let pdfDoc;
   try {
     pdfDoc = await PDFDocument.load(pdfBuffer);
-    console.log('[PAGES] PDF loaded successfully.');
+    // console.log('[PAGES] PDF loaded successfully.');
   } catch (err) {
     console.error('[ERROR ❌] Failed to load PDF:', err.message);
     return { tocPages: [], tocStartPage: null };
@@ -23,7 +23,7 @@ module.exports = async function extractPages(pdfBuffer) {
 
   for (let i = 0; i < totalPages; i++) {
     if (collecting && collectedCount >= 17) {
-      console.log('[TOC ⏹️] Reached max of 15 TOC pages. Stopping collection.');
+      // console.log('[TOC ⏹️] Reached max of 15 TOC pages. Stopping collection.');
       break;
     }
 
@@ -37,7 +37,7 @@ module.exports = async function extractPages(pdfBuffer) {
       const text = parsed.text.trim();
 
       if (!text) {
-        console.warn(`[PAGE ⚠️] Page ${i + 1} has no text.`);
+        // console.warn(`[PAGE ⚠️] Page ${i + 1} has no text.`);
         continue;
       }
 
@@ -45,17 +45,18 @@ module.exports = async function extractPages(pdfBuffer) {
       if (!collecting && isTableOfContents(text)) {
         collecting = true;
         tocStartPage = i + 1;
-        console.log(
-          `[TOC 🧭] Detected Table of Contents starting at page ${tocStartPage}`
-        );
+        // console.log(
+        //   `[TOC 🧭] Detected Table of Contents starting at page ${tocStartPage}`
+        // );
       }
 
       if (collecting) {
         pageTexts.push(text);
         collectedCount++; // Increment after collecting
-        console.log(
-          `[CHAPTER ✅] Collected TOC data on page ${i + 1}/${totalPages}`
-        );
+        console
+          .log
+          // `[CHAPTER ✅] Collected TOC data on page ${i + 1}/${totalPages}`
+          ();
       }
     } catch (err) {
       console.error(`[ERROR ❌] Failed to process page ${i + 1}:`, err.message);
@@ -65,7 +66,7 @@ module.exports = async function extractPages(pdfBuffer) {
   if (pageTexts.length === 0) {
     console.warn('[TOC ❌] No Table of Contents pages detected.');
   } else {
-    console.log(`[TOC ✅] Total TOC pages collected: ${pageTexts.length}`);
+    // console.log(`[TOC ✅] Total TOC pages collected: ${pageTexts.length}`);
   }
 
   return { tocPages: pageTexts, tocStartPage };

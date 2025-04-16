@@ -49,14 +49,7 @@ module.exports = async function parseTOCPages(pdfBuffer, tocTexts) {
   // console.log(Array.isArray(structureSubChapter)); // Should be true
   // console.log(structuredSubChapters); // Check what's actually inside
 
-  console.dir(grpChapters, {
-    depth: null,
-    colors: true,
-    maxArrayLength: null, // shows all array items
-    compact: false, // makes the output easier to read
-  });
-
-  return tocArray;
+  return grpChapters;
   // TODO : Just here for separtaion ------------------------
 
   // -------------------Functions Area ---------------------

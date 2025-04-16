@@ -7,4 +7,4 @@ const chaptersSchema = new mongoose.Schema({
   order: Number,
 });
 
-module.exports = mongoose.model('Chapters', segmentSchema);
+module.exports = mongoose.model('Chapters', chaptersSchema);

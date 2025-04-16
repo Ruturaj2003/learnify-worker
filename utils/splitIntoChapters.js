@@ -1,67 +1,38 @@
 const { PDFDocument } = require('pdf-lib');
 
-/**
- * Splits the PDF document into chapters based on TOC with start and end pages.
- *
- * @param {Buffer} pdfBuffer - The PDF buffer from which chapters will be split.
- * @param {Array} tocEntries - Array of TOC entries (title, startPage, endPage).
- * @returns {Array} - Array of chapter PDFs (Buffer for each chapter).
- */
 module.exports = async function splitIntoChapters(pdfBuffer, tocEntries) {
-  console.log('[SplitIntoChapters] Starting PDF chapter splitting...');
-  let pdfDoc;
+  const originalPdf = await PDFDocument.load(pdfBuffer);
+  const totalPages = originalPdf.getPageCount();
+  const compiledChapters = [];
 
-  try {
-    pdfDoc = await PDFDocument.load(pdfBuffer);
-    console.log('[SplitIntoChapters] PDF loaded successfully.');
-  } catch (err) {
-    console.error('[ERROR ❌] Failed to load PDF:', err.message);
-    return [];
-  }
+  for (const chapter of tocEntries) {
+    let newSubChapterObjArray = [];
 
-  const totalPages = pdfDoc.getPageCount();
-  const maxAllowedPage = totalPages * 3;
-  console.log(`[SplitIntoChapters] Total pages in PDF: ${totalPages}`);
+    for (const subChapter of chapter.subChapters) {
+      const newSubChapterObj = { ...subChapter, chapterBuffer: null };
+      const { ChapterName, ChapterNumber, StartPage, EndPage } =
+        newSubChapterObj;
 
-  const chapterBuffers = [];
+      const start = Math.max(0, StartPage - 1); // zero-based index
+      const end = Math.min(totalPages, EndPage); // inclusive limit
 
-  for (const entry of tocEntries) {
-    const title = entry.title;
-    let startPage = entry.startPage;
-    let endPage = entry.endPage;
-
-    // Skip if start page is more than 3 times the length of the PDF
-    if (startPage > maxAllowedPage) {
-      console.warn(
-        `[Skip] "${title}" has a start page (${startPage}) greater than 3× PDF length. Skipping.`
+      const chapterPdf = await PDFDocument.create();
+      const copiedPages = await chapterPdf.copyPages(
+        originalPdf,
+        Array.from({ length: end - start }, (_, i) => i + start)
       );
-      continue;
+
+      for (const page of copiedPages) {
+        chapterPdf.addPage(page);
+      }
+      const buffer = await chapterPdf.save();
+      newSubChapterObj.chapterBuffer = buffer;
+      newSubChapterObjArray.push(newSubChapterObj);
     }
 
-    // Clamp values within PDF range
-    startPage = Math.max(1, startPage); // Ensure start is at least page 1
-    endPage = endPage && endPage <= maxAllowedPage ? endPage : totalPages;
-
-    const zeroBasedStart = startPage - 1;
-    const zeroBasedEnd = Math.min(endPage, totalPages); // Ensure end is within PDF
-
-    console.log(
-      `[SplitIntoChapters] Splitting "${title}" (Pages: ${startPage} to ${zeroBasedEnd})`
-    );
-
-    const chapterDoc = await PDFDocument.create();
-
-    for (let i = zeroBasedStart; i < zeroBasedEnd; i++) {
-      const [copiedPage] = await chapterDoc.copyPages(pdfDoc, [i]);
-      chapterDoc.addPage(copiedPage);
-    }
-
-    const chapterBuffer = await chapterDoc.save();
-    chapterBuffers.push({ title, buffer: chapterBuffer });
-
-    console.log(`[SplitIntoChapters] Chapter "${title}" saved.`);
+    let newChapterObj = { ...chapter, subChapters: newSubChapterObjArray };
+    compiledChapters.push(newChapterObj);
   }
 
-  console.log('[SplitIntoChapters] PDF splitting completed.');
-  return chapterBuffers;
+  return compiledChapters;
 };
