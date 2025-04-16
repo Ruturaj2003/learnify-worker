@@ -424,5 +424,5 @@ module.exports = async function parseTOCPages(pdfBuffer, tocTexts) {
     return result;
   }
 
-  // X-------------X-----------------------X------------------X
+  // X-------------X-----------------------X----------------
 };
