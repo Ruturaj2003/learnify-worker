@@ -301,20 +301,22 @@ module.exports = async function parseTOCPages(pdfBuffer, tocTexts) {
 
     return result;
   }
+  let structuredMainChapters;
+  let strucrturedSubChapters;
 
   if (mainChapters.length === 0) {
-    structureMainChapter = handleNonIdentifiedChapterList();
+    structuredMainChapters = handleNonIdentifiedChapterList();
   } else {
-    structureMainChapter = structureChapter(mainChapters);
+    structuredMainChapters = structureChapter(mainChapters);
   }
 
   // cleanedSubChaps = cleanedSubChaps.filter(removeSubSubChapters);
-  let dota = filterDirectSubChapters(cleanedSubChaps);
-  console.log('GG');
+  cleandSubChaps = filterDirectSubChapters(cleanedSubChaps);
 
-  console.dir(dota, { depth: null });
+  strucrturedSubChapters = structureChapter(cleanedSubChaps);
+
+  console.dir(structuredMainChapters, { depth: null });
+  console.dir(strucrturedSubChapters, { depth: null });
 
   return tocArray;
 };
-
-// TODO : 2nd Check why the first one isnt added
