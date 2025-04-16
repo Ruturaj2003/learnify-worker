@@ -183,7 +183,7 @@ module.exports = async function parseTOCPages(pdfBuffer, tocTexts) {
   }
 
   function formatSubChapters(subChapters) {
-    return subChapters.map((subChap) => {
+    let cleanedChap = subChapters.map((subChap) => {
       let cleaned = '';
       for (let i = 0; i < subChap.length; i++) {
         if (subChap[i] === '.') {
@@ -195,6 +195,10 @@ module.exports = async function parseTOCPages(pdfBuffer, tocTexts) {
       }
       return cleaned.trim();
     });
+    while (cleanedChap.length > 0 && !/^1/.test(cleanedChap[0])) {
+      cleanedChap.shift();
+    }
+    return cleanedChap;
   }
 
   function handleNonIdentifiedChapterList() {
@@ -317,3 +321,4 @@ module.exports = async function parseTOCPages(pdfBuffer, tocTexts) {
 //TODO : Check if there are 2 digits after the dots , if yes then extract those number or just double clean after this when they are like this trackt he current number then check if u sub it by 0.1 will u get the prev chapter number if  yes take , use a while loop and check when it goes there change the index to that one and save  ie: ......................................................While loop starts with 1 , save the first entry then use a for loop in it start with i then check when u get the index where if u add 0.1 to the current chapter number , it will be same as the next chapter number , now the next one is found so change the index of i to it , then it gets saved
 
 // TODO Handle if the start values is big ,it messes up stuff bc
+//  Check WHy the 1st one isnt taking
