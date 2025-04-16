@@ -270,7 +270,7 @@ module.exports = async function parseTOCPages(pdfBuffer, tocTexts) {
         let nextNumber = extractCombinedChapterNumber(next);
 
         if (checkVal === nextNumber) {
-          result.push(subChapters[j]); // Add the current chapter
+          result.push(subChapters[i]); // Add the current chapter
           i = j; // Move to the next matched subchapter
           found = true;
           break;
@@ -289,7 +289,6 @@ module.exports = async function parseTOCPages(pdfBuffer, tocTexts) {
 
           if (Math.abs(currentNumber - nextNumber) <= 80) {
             console.log('Break Here ' + currentNumber);
-            result.push(subChapters[i]);
             i = j; // Move to the next closer chapter
             break;
           }
@@ -318,7 +317,4 @@ module.exports = async function parseTOCPages(pdfBuffer, tocTexts) {
   return tocArray;
 };
 
-//TODO : Check if there are 2 digits after the dots , if yes then extract those number or just double clean after this when they are like this trackt he current number then check if u sub it by 0.1 will u get the prev chapter number if  yes take , use a while loop and check when it goes there change the index to that one and save  ie: ......................................................While loop starts with 1 , save the first entry then use a for loop in it start with i then check when u get the index where if u add 0.1 to the current chapter number , it will be same as the next chapter number , now the next one is found so change the index of i to it , then it gets saved
-
-// TODO Handle if the start values is big ,it messes up stuff bc
-//  Check WHy the 1st one isnt taking
+// TODO : 2nd Check why the first one isnt added
