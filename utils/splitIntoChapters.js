@@ -10,8 +10,7 @@ module.exports = async function splitIntoChapters(pdfBuffer, tocEntries) {
 
     for (const subChapter of chapter.subChapters) {
       const newSubChapterObj = { ...subChapter, chapterBuffer: null };
-      const { ChapterName, ChapterNumber, StartPage, EndPage } =
-        newSubChapterObj;
+      const { StartPage, EndPage } = newSubChapterObj;
 
       const start = Math.max(0, StartPage - 1); // zero-based index
       const end = Math.min(totalPages, EndPage); // inclusive limit

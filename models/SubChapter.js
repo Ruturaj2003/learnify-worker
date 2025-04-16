@@ -6,6 +6,11 @@ const subChapterSchema = new mongoose.Schema({
     ref: 'Chapters',
     required: true,
   },
+  chapterName: {
+    type: String,
+    required: true,
+  },
+  chapterNumber: Number,
   originalText: {
     type: String,
     required: true,
@@ -20,6 +25,6 @@ const subChapterSchema = new mongoose.Schema({
   },
 });
 
-const SubChapter = mongoose.model('SubChapter', subChapterSchema);
+const SubChapter = mongoose.model('SubChapters', subChapterSchema);
 
 module.exports = SubChapter;

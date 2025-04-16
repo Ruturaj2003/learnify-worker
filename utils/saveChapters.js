@@ -1,50 +1,58 @@
-const Chapters = require('../models/Chapter'); // Mongoose model for saving chapters
+const Chapter = require('../models/Chapter');
+const SubChapter = require('../models/SubChapter');
 
-/**
- * Saves the parsed chapters to the Segment model.
- *
- * @param {Array} chapterBuffers - Array of chapter data with title and buffer.
- * @param {mongoose.Types.ObjectId} bookId - The ID of the book being processed.
- */
-module.exports = async function saveChapters(chapterBuffers, bookId) {
+module.exports = async function saveChapters(compliedChapters, bookId) {
   console.log('[SaveChapters] Saving parsed chapters to database...');
 
-  try {
-    for (let i = 0; i < chapterBuffers.length; i++) {
-      const chapter = chapterBuffers[i];
-      const { title, buffer } = chapter;
+  let processedChapters = [];
 
-      // Extract text content from the chapter PDF buffer (could use pdf-parse or another method)
-      const content = await extractTextFromPDFBuffer(buffer);
+  for (const chapter of compliedChapters) {
+    let subChapterObjectArray = [];
 
-      // Create a new segment (chapter) in the database
-      // const segment = new Segment({
-      //   book: bookId, // Reference to the book being processed
-      //   title,
-      //   content, // Chapter content (text extracted from PDF)
-      //   order: i + 1, // Order of the chapter based on its position in the TOC
-      // });
+    for (const subChapter of chapter.subChapters) {
+      let newSubChapterObj = { ...subChapter, originalText: null };
+      const content = await extractTextFromPDFBuffer(subChapter.chapterBuffer);
 
-      // Save the segment to the database
-      await segment.save();
-      console.log(
-        `[SaveChapters] Chapter "${title}" saved as Segment ${i + 1}`
-      );
+      newSubChapterObj.originalText = content;
+      subChapterObjectArray.push(newSubChapterObj);
     }
+    let newChapterObject = { ...chapter, subChapters: subChapterObjectArray };
 
+    processedChapters.push(newChapterObject);
+  }
+
+  console.log(processedChapters[0].subChapters);
+
+  try {
+    for (const chap of processedChapters) {
+      let subChapCounter = 1;
+      const chapter = new Chapter({
+        book: bookId,
+        chapterName: chap.ChapterName,
+        chapterNumber: chap.ChapterNumber,
+      });
+
+      await chapter.save();
+      for (const subChap of chap.subChapters) {
+        if (!subChap.originalText) {
+          continue;
+        }
+        const subChapter = new SubChapter({
+          chapter: chapter._id,
+          originalText: subChap.originalText,
+          chapterNumber: subChapCounter,
+          chapterName: subChap.ChapterName,
+        });
+        await subChapter.save();
+        subChapCounter += 1;
+      }
+    }
     console.log('[SaveChapters] All chapters saved successfully.');
   } catch (err) {
     console.error('[SaveChapters ❌] Error saving chapters:', err.message);
   }
 };
 
-/**
- * Extracts text from a PDF buffer.
- * (Note: You can use pdf-parse or any text extraction library that works for your use case)
- *
- * @param {Buffer} pdfBuffer - The buffer of the chapter's PDF.
- * @returns {Promise<string>} - Extracted text content of the PDF.
- */
 async function extractTextFromPDFBuffer(pdfBuffer) {
   const pdfParse = require('pdf-parse');
   try {
