@@ -16,9 +16,6 @@ module.exports = async function parseTOCPages(pdfBuffer, tocTexts) {
   let mainChapters = [...new Set(chapterTitles.filter(extractMainChapters))];
   let subChapters = chapterTitles.filter(extractSubChapters);
 
-  // Group subchapters under their main chapters
-  const grpChapters = uniteChaptersData();
-
   // Get total number of pages in the PDF
   const lastPage = await calcLastPage();
 
@@ -42,16 +39,22 @@ module.exports = async function parseTOCPages(pdfBuffer, tocTexts) {
     structuredSubChapters = structureSubChapter(cleanedSubChaps, lastPage);
   }
 
-  // Filter only direct subchapters (like 1.1, 1.2, etc.)
+  // Group subchapters under their main chapters
+  const grpChapters = uniteChaptersData(
+    structuredMainChapters,
+    structuredSubChapters
+  );
 
-  // Structure cleaned subchapters into proper objects with page info
+  // console.log(typeof structureSubChapter); // Should be 'object'
+  // console.log(Array.isArray(structureSubChapter)); // Should be true
+  // console.log(structuredSubChapters); // Check what's actually inside
 
-  // Debug: print structured chapter info
-  console.dir(structuredSubChapters, {
+  console.dir(grpChapters, {
     depth: null,
     colors: true,
+    maxArrayLength: null, // shows all array items
+    compact: false, // makes the output easier to read
   });
-  // console.dir(cleanedSubChaps, { depth: null });
 
   return tocArray;
   // TODO : Just here for separtaion ------------------------
@@ -110,14 +113,20 @@ module.exports = async function parseTOCPages(pdfBuffer, tocTexts) {
     return !mainChapters.includes(text);
   }
 
-  function uniteChaptersData() {
-    let grouped = {};
-    for (let main of mainChapters) {
-      let mainNumber = main.match(/^\d+/)[0];
-      grouped[main] = subChapters.filter((sub) =>
-        sub.startsWith(mainNumber + '.')
-      );
+  function uniteChaptersData(mainChapters, subChapters) {
+    let grouped = [];
+    for (let chap of mainChapters) {
+      let chapterWithSubs = { ...chap, subChapters: [] };
+
+      for (let subchap of subChapters) {
+        if (chap.ChapterNumber == subchap.ChapterNumber) {
+          chapterWithSubs.subChapters.push(subchap);
+        }
+      }
+
+      grouped.push(chapterWithSubs);
     }
+
     return grouped;
   }
 
@@ -186,6 +195,10 @@ module.exports = async function parseTOCPages(pdfBuffer, tocTexts) {
 
       // Skip subchapter if the startPage is higher than 15 for the first entry
       if (i === 0 && startPage > 15) continue;
+      // Not needed
+      // if (result.length == 0 && !/^1/.test(subChapters[i])) {
+      //   continue;
+      // }
 
       let endPage =
         i === subChapters.length - 1
@@ -323,24 +336,37 @@ module.exports = async function parseTOCPages(pdfBuffer, tocTexts) {
 
         if (nextChapterNum === -1) {
           endPage = subChapters[i].match(/\d+$/)?.[0] ?? null;
-          pages.push({
-            ChapterName: `Chapter ${chapterCount}`,
-            ChapterNumber: chapterCount,
-            StartPage: Number(startPage),
-            EndPage: endPage + 4,
-          });
-          chapterCount++;
+          if (endPage) {
+            endPage = Number(endPage) + 4; // Add 4 pages as per your logic
+            pages.push({
+              ChapterName: `Chapter ${chapterCount}`,
+              ChapterNumber: chapterCount,
+              StartPage: Number(startPage),
+              EndPage: endPage,
+            });
+            chapterCount++;
+          }
         }
-        if (nextChapterNum < currentChapterNum) {
+
+        // Ensure we're comparing numbers
+        if (Number(nextChapterNum) < Number(currentChapterNum)) {
           let nextLine = subChapters[i + 1];
           endPage = nextLine?.match(/\d+$/)?.[0] ?? null;
-          pages.push({
-            ChapterName: `Chapter ${chapterCount}`,
-            ChapterNumber: chapterCount,
-            StartPage: Number(startPage),
-            EndPage: endPage - 1,
-          });
-          chapterCount++;
+
+          if (endPage) {
+            endPage = Number(endPage);
+
+            // Ensure it's a valid number and compare properly
+            if (chapterCount > 5 && endPage < 20) break;
+
+            pages.push({
+              ChapterName: `Chapter ${chapterCount}`,
+              ChapterNumber: chapterCount,
+              StartPage: Number(startPage),
+              EndPage: endPage - 1, // Adjusting endPage
+            });
+            chapterCount++;
+          }
         }
       }
     }
@@ -400,5 +426,3 @@ module.exports = async function parseTOCPages(pdfBuffer, tocTexts) {
 
   // X-------------X-----------------------X------------------X
 };
-
-// TODO : 1 : Make a New Structure Function for the sub chapters to have Proper Chapter Numbers
