@@ -131,7 +131,7 @@ async function analyzeQuizResults(questions, userAnswers, correctAnswers) {
   }
 }
 
-// Exporting both functions
+// Exporting all functions
 module.exports = {
   getChapterExplanation,
   generateQuiz,
