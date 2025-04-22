@@ -1,9 +1,8 @@
-const mongoose = require("mongoose");
-
+import mongoose from 'mongoose';
 const subChapterSchema = new mongoose.Schema({
   chapter: {
     type: mongoose.Schema.Types.ObjectId,
-    ref: "Chapters",
+    ref: 'Chapters',
     required: true,
   },
   chapterName: {
@@ -17,16 +16,16 @@ const subChapterSchema = new mongoose.Schema({
   },
   simpleExplanation: {
     type: String,
-    default: "",
+    default: '',
   },
   detailedExplanation: {
     type: String,
-    default: "",
+    default: '',
   },
   explanationStatus: {
     type: String,
-    enum: ["pending", "completed", "failed"],
-    default: "pending",
+    enum: ['pending', 'completed', 'failed'],
+    default: 'pending',
   },
   quiz: {
     attempted: { type: Boolean, default: false },
@@ -36,5 +35,4 @@ const subChapterSchema = new mongoose.Schema({
     lastAttemptedAt: { type: Date },
   },
 });
-
-module.exports = mongoose.model("SubChapters", subChapterSchema);
+module.exports = mongoose.model('SubChapters', subChapterSchema);
