@@ -1,9 +1,9 @@
-const mongoose = require('mongoose');
+const mongoose = require("mongoose");
 
 const subChapterSchema = new mongoose.Schema({
   chapter: {
     type: mongoose.Schema.Types.ObjectId,
-    ref: 'Chapters',
+    ref: "Chapters",
     required: true,
   },
   chapterName: {
@@ -17,14 +17,24 @@ const subChapterSchema = new mongoose.Schema({
   },
   simpleExplanation: {
     type: String,
-    default: '',
+    default: "",
   },
   detailedExplanation: {
     type: String,
-    default: '',
+    default: "",
+  },
+  explanationStatus: {
+    type: String,
+    enum: ["pending", "completed", "failed"],
+    default: "pending",
+  },
+  quiz: {
+    attempted: { type: Boolean, default: false },
+    correctAnswers: { type: Number, default: 0 },
+    totalQuestions: { type: Number, default: 0 },
+    knowledgeScore: { type: Number, default: 0 },
+    lastAttemptedAt: { type: Date },
   },
 });
 
-const SubChapter = mongoose.model('SubChapters', subChapterSchema);
-
-module.exports = SubChapter;
+module.exports = mongoose.model("SubChapters", subChapterSchema);

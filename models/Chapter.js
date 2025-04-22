@@ -1,9 +1,9 @@
-const mongoose = require('mongoose');
+const mongoose = require("mongoose");
 
 const chaptersSchema = new mongoose.Schema({
-  book: { type: mongoose.Schema.Types.ObjectId, ref: 'Book', required: true },
-  chapterName: String,
-  chapterNumber: Number,
+  book: { type: mongoose.Schema.Types.ObjectId, ref: "Books", required: true },
+  chapterName: { type: String, required: true },
+  chapterNumber: { type: Number, required: true },
 });
 
-module.exports = mongoose.model('Chapters', chaptersSchema);
+module.exports = mongoose.model("Chapters", chaptersSchema);
