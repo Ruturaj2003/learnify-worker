@@ -1,12 +1,8 @@
-const { getChapterExplanation } = require("../lib/geminiService");
-const SubChapter = require("../models/SubChapter");
+const { getChapterExplanation } = require('../lib/geminiService');
+const SubChapter = require('../models/SubChapter');
 
 // Generates explanations and saves the subchapter to DB
-async function saveSubChapterWithExplanations({
-  chapterId,
-  subChapData,
-  subChapCounter,
-}) {
+async function saveSubChapterWithExplanations(processedChapters) {
   const originalText = subChapData.originalText;
 
   if (!originalText || originalText.length < 100) {
@@ -19,14 +15,14 @@ async function saveSubChapterWithExplanations({
   console.log(
     `[SubChapter ${subChapCounter}] Generating simple explanation...`
   );
-  const simpleExplanation = await getChapterExplanation(originalText, "simple");
+  const simpleExplanation = await getChapterExplanation(originalText, 'simple');
 
   console.log(
     `[SubChapter ${subChapCounter}] Generating detailed explanation...`
   );
   const detailedExplanation = await getChapterExplanation(
     originalText,
-    "detailed"
+    'detailed'
   );
 
   const subChapter = new SubChapter({
@@ -36,7 +32,7 @@ async function saveSubChapterWithExplanations({
     originalText,
     simpleExplanation,
     detailedExplanation,
-    explanationStatus: "completed",
+    explanationStatus: 'completed',
   });
 
   await subChapter.save();

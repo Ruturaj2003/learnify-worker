@@ -4,6 +4,7 @@ const parseTOC = require('../utils/parseTOC');
 const splitIntoChapters = require('../utils/splitIntoChapters');
 const saveChapters = require('../utils/saveChapters');
 const Chapter = require('../models/Chapter');
+const processPdfToText = require('../utils/processPdfToText');
 
 async function processBook(bookId, fileUrl) {
   const url = fileUrl;
@@ -22,8 +23,11 @@ async function processBook(bookId, fileUrl) {
 
     // // Save chapters to the database
     console.log('[processBook] Saving chapters to DB...');
-    await saveChapters(compiledChapters, bookId); // Pass bookId to associate chapters with a book
+    const processedChapters = await processPdfToText(compiledChapters, bookId); // Pass bookId to associate chapters with a book
 
+    // const completeChapters = await explainationGen(processedChapters);
+
+    // await saveChapters(completeChapters, bookId);
     console.log('[processBook] Book processing completed successfully!');
   } catch (error) {
     console.error('[processBook] Error during book processing:', error);

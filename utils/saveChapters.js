@@ -1,26 +1,4 @@
-const Chapter = require("../models/Chapter");
-const SubChapter = require("../models/SubChapter");
-
-module.exports = async function saveChapters(compliedChapters, bookId) {
-  console.log("[SaveChapters] Saving parsed chapters to database...");
-
-  let processedChapters = [];
-
-  for (const chapter of compliedChapters) {
-    let subChapterObjectArray = [];
-
-    for (const subChapter of chapter.subChapters) {
-      let newSubChapterObj = { ...subChapter, originalText: null };
-      const content = await extractTextFromPDFBuffer(subChapter.chapterBuffer);
-
-      newSubChapterObj.originalText = content;
-      subChapterObjectArray.push(newSubChapterObj);
-    }
-    let newChapterObject = { ...chapter, subChapters: subChapterObjectArray };
-
-    processedChapters.push(newChapterObject);
-  }
-
+module.exports = async function saveChapters(processedChapters, bookId) {
   try {
     for (const chap of processedChapters) {
       let subChapCounter = 1;
@@ -45,22 +23,8 @@ module.exports = async function saveChapters(compliedChapters, bookId) {
         subChapCounter += 1;
       }
     }
-    console.log("[SaveChapters] All chapters saved successfully.");
+    console.log('[SaveChapters] All chapters saved successfully.');
   } catch (err) {
-    console.error("[SaveChapters ❌] Error saving chapters:", err.message);
+    console.error('[SaveChapters ❌] Error saving chapters:', err.message);
   }
 };
-
-async function extractTextFromPDFBuffer(pdfBuffer) {
-  const pdfParse = require("pdf-parse");
-  try {
-    const parsed = await pdfParse(pdfBuffer);
-    return parsed.text.trim(); // Return extracted text content
-  } catch (err) {
-    console.error(
-      "[ERROR ❌] Failed to extract text from chapter PDF:",
-      err.message
-    );
-    return ""; // Return empty string in case of error
-  }
-}
