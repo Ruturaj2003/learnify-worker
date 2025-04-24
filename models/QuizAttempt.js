@@ -1,10 +1,10 @@
-import mongoose, { Schema, Types } from 'mongoose';
+const mongoose = require("mongoose");
 
 const quizAttemptSchema = new mongoose.Schema({
-  userId: { type: Types.ObjectId, ref: 'User', required: true },
+  userId: { type: mongoose.Schema.Types.ObjectId, ref: "User", required: true },
   subChapterId: {
     type: mongoose.Schema.Types.ObjectId,
-    ref: 'SubChapters',
+    ref: "SubChapters",
     required: true,
   },
   questions: [
@@ -15,7 +15,7 @@ const quizAttemptSchema = new mongoose.Schema({
       userAnswer: String,
       explanation: String, // only for wrong ones
       isCorrect: Boolean,
-      difficulty: { type: String, enum: ['easy', 'medium', 'hard'] },
+      difficulty: { type: String, enum: ["easy", "medium", "hard"] },
     },
   ],
   score: { type: Number }, // number of correct answers
@@ -24,4 +24,4 @@ const quizAttemptSchema = new mongoose.Schema({
   createdAt: { type: Date, default: Date.now },
 });
 
-module.exports = mongoose.model('QuizAttempts', quizAttemptSchema);
+module.exports = mongoose.model("QuizAttempts", quizAttemptSchema);

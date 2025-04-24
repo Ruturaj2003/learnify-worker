@@ -23,7 +23,7 @@ async function processBook(bookId, fileUrl) {
 
     // // Save chapters to the database
     console.log("[processBook] Saving chapters to DB...");
-    const processedChapters = await processPdfToText(compiledChapters, bookId); // Pass bookId to associate chapters with a book
+    await saveChapters(compiledChapters, bookId); // Pass bookId to associate chapters with a book
 
     console.log("[processBook] Book processing completed successfully!");
   } catch (error) {
