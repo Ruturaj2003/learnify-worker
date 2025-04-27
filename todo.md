@@ -1,4 +1,4 @@
-## Rename the segment model to chapters
+## Take into account the
 
 ## Accept this annoying type of index aswell
 

@@ -24,7 +24,7 @@ const processBook = require('./jobs/processBook');
           // You could also add job failure handling here
         }
       },
-      { connection: redis }
+      { connection: redis, lockDuration: 300000 }
     );
 
     console.log('[WORKER] Waiting for jobs...');

@@ -1,12 +1,12 @@
 const Chapter = require('../models/Chapter');
 const SubChapter = require('../models/SubChapter');
 
-module.exports = async function saveChapters(compliedChapters, bookId) {
+module.exports = async function saveChapters(compiledChapters, bookId) {
   console.log('[SaveChapters] Saving parsed chapters to database...');
 
   let processedChapters = [];
 
-  for (const chapter of compliedChapters) {
+  for (const chapter of compiledChapters) {
     let subChapterObjectArray = [];
 
     for (const subChapter of chapter.subChapters) {
@@ -21,15 +21,15 @@ module.exports = async function saveChapters(compliedChapters, bookId) {
     processedChapters.push(newChapterObject);
   }
 
-  console.log(processedChapters[0].subChapters);
+  console.log(processedChapters[0]);
 
   try {
     for (const chap of processedChapters) {
       let subChapCounter = 1;
       const chapter = new Chapter({
         book: bookId,
-        chapterName: chap.ChapterName,
-        chapterNumber: chap.ChapterNumber,
+        chapterName: chap.ChapterName, // fixed
+        chapterNumber: chap.ChapterNumber, // fixed
       });
 
       await chapter.save();
@@ -41,7 +41,7 @@ module.exports = async function saveChapters(compliedChapters, bookId) {
           chapter: chapter._id,
           originalText: subChap.originalText,
           chapterNumber: subChapCounter,
-          chapterName: subChap.ChapterName,
+          chapterName: subChap.ChapterName, // fixed
         });
         await subChapter.save();
         subChapCounter += 1;
