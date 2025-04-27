@@ -1,26 +1,46 @@
 const { PDFDocument } = require("pdf-lib");
 
-async function trimPdf(pdfBuffer, pagesToRemove) {
-  const pdfDoc = await PDFDocument.load(pdfBuffer);
+module.exports = async function trimPdf(pdfBuffer, pagesToRemove) {
+  console.log("[TRIM] Starting to trim PDF...");
 
-  // Get the total number of pages in the PDF
-  const totalPages = pdfDoc.getPages().length;
-
-  // Ensure that pagesToRemove does not exceed the total number of pages
-  //   if (pagesToRemove >= totalPages) {
-  //     throw new Error("Pages to remove exceeds the total number of pages.");
-  //   }
-
-  // Slice the PDF to remove the first `pagesToRemove` pages
-  const pagesToKeep = pdfDoc.getPages().slice(25, totalPages);
-
-  // Create a new PDF with the remaining pages
-  const newPdfDoc = await PDFDocument.create();
-  for (const page of pagesToKeep) {
-    const [newPage] = await newPdfDoc.copyPages(pdfDoc, [page.index]);
-    newPdfDoc.addPage(newPage);
+  let pdfDoc;
+  try {
+    pdfDoc = await PDFDocument.load(pdfBuffer);
+    // console.log('[TRIM] PDF loaded successfully.');
+  } catch (err) {
+    console.error("[ERROR ❌] Failed to load PDF:", err.message);
+    throw new Error("Failed to load PDF for trimming.");
   }
 
-  const newPdfBuffer = await newPdfDoc.save();
-  return newPdfBuffer;
-}
+  const totalPages = pdfDoc.getPageCount();
+  console.log(`[TRIM] Total pages in original PDF: ${totalPages}`);
+
+  if (pagesToRemove >= totalPages) {
+    console.error(
+      `[ERROR ❌] Pages to remove (${pagesToRemove}) exceed total pages (${totalPages}).`
+    );
+    throw new Error("Pages to remove exceed total number of pages.");
+  }
+
+  try {
+    const newPdfDoc = await PDFDocument.create();
+
+    for (let i = pagesToRemove; i < totalPages; i++) {
+      const [copiedPage] = await newPdfDoc.copyPages(pdfDoc, [i]);
+      newPdfDoc.addPage(copiedPage);
+      // console.log(`[TRIM] Kept page ${i + 1}`);
+    }
+
+    const newPdfBuffer = await newPdfDoc.save();
+    console.log(
+      `[TRIM ✅] Trimmed PDF created successfully with ${
+        totalPages - pagesToRemove
+      } pages.`
+    );
+
+    return newPdfBuffer;
+  } catch (err) {
+    console.error("[ERROR ❌] Failed during PDF trimming:", err.message);
+    throw new Error("Error during PDF trimming.");
+  }
+};

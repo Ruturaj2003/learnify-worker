@@ -1,15 +1,15 @@
-const { PDFDocument } = require('pdf-lib');
-const pdfParse = require('pdf-parse');
+const { PDFDocument } = require("pdf-lib");
+const pdfParse = require("pdf-parse");
 
 module.exports = async function extractPages(pdfBuffer) {
-  console.log('[PAGES] Starting PDF processing...');
+  console.log("[PAGES] Starting PDF processing...");
 
   let pdfDoc;
   try {
     pdfDoc = await PDFDocument.load(pdfBuffer);
     // console.log('[PAGES] PDF loaded successfully.');
   } catch (err) {
-    console.error('[ERROR ❌] Failed to load PDF:', err.message);
+    console.error("[ERROR ❌] Failed to load PDF:", err.message);
     return { tocPages: [], tocStartPage: null };
   }
 
@@ -64,7 +64,7 @@ module.exports = async function extractPages(pdfBuffer) {
   }
 
   if (pageTexts.length === 0) {
-    console.warn('[TOC ❌] No Table of Contents pages detected.');
+    console.warn("[TOC ❌] No Table of Contents pages detected.");
   } else {
     // console.log(`[TOC ✅] Total TOC pages collected: ${pageTexts.length}`);
   }
@@ -77,12 +77,12 @@ function isTableOfContents(text) {
   const lower = text.toLowerCase();
 
   const keywords = [
-    'table of contents',
-    'contents',
-    'brief contents',
-    'index',
-    'detailed contents',
-    'list of chapters',
+    "table of contents",
+    "contents",
+    "brief contents",
+    "index",
+    "detailed contents",
+    "list of chapters",
   ];
 
   const tocLinePattern = /(^|\n).{0,100}(\.{2,}|\s{2,})\s*\d{1,4}($|\n)/g;

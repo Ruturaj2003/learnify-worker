@@ -9,6 +9,8 @@ const trimPdf = require("../utils/trimPdf");
 
 async function processBook(bookId, fileUrl) {
   const url = fileUrl;
+  const pagesToRemove = 21;
+
   try {
     console.log("[processBook] Downloading PDF...");
     const pdfBuffer = await downloadPDF(url);
