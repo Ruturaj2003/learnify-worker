@@ -1,9 +1,9 @@
-const mongoose = require("mongoose");
+const mongoose = require('mongoose');
 
 const subChapterSchema = new mongoose.Schema({
   chapter: {
     type: mongoose.Schema.Types.ObjectId,
-    ref: "Chapters",
+    ref: 'Chapters',
     required: true,
   },
   chapterName: {
@@ -17,16 +17,20 @@ const subChapterSchema = new mongoose.Schema({
   },
   simpleExplanation: {
     type: String,
-    default: "",
+    default: '',
   },
   detailedExplanation: {
     type: String,
-    default: "",
+    default: '',
   },
-  explanationStatus: {
+  completedStatus: {
     type: String,
-    enum: ["pending", "completed", "failed"],
-    default: "pending",
+    enum: ['pending', 'completed'],
+    default: 'pending',
+  },
+  pdfBuffer: {
+    type: Buffer, // Store the PDF as a binary buffer
+    // required: true, Un Comment Later Bro
   },
   quiz: {
     attempted: { type: Boolean, default: false },
@@ -37,4 +41,4 @@ const subChapterSchema = new mongoose.Schema({
   },
 });
 
-module.exports = mongoose.model("SubChapters", subChapterSchema);
+module.exports = mongoose.model('SubChapters', subChapterSchema);
