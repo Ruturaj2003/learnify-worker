@@ -5,6 +5,7 @@ const splitIntoChapters = require("../utils/splitIntoChapters");
 const saveChapters = require("../utils/saveChapters");
 const Chapter = require("../models/Chapter");
 const processPdfToText = require("../utils/processPdfToText");
+const trimPdf = require("../utils/trimPdf");
 
 async function processBook(bookId, fileUrl) {
   const url = fileUrl;
@@ -18,8 +19,17 @@ async function processBook(bookId, fileUrl) {
     console.log("[processBook] Parsing Table of Contents...");
     const tocEntries = await parseTOC(pdfBuffer, tocPages); // Pass only the tocPages array
 
+    // Now that the TOC is parsed, trim the PDF to remove the specified number of pages
+    console.log(
+      "[processBook] Trimming PDF to remove the first ${pagesToRemove} pages..."
+    );
+    const trimmedPdfBuffer = await trimPdf(pdfBuffer, pagesToRemove);
+
     console.log("[processBook] Splitting PDF into chapters...");
-    const compiledChapters = await splitIntoChapters(pdfBuffer, tocEntries);
+    const compiledChapters = await splitIntoChapters(
+      trimmedPdfBuffer,
+      tocEntries
+    );
 
     // // Save chapters to the database
     console.log("[processBook] Saving chapters to DB...");
