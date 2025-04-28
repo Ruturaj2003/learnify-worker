@@ -22,4 +22,4 @@ dist/
 build/
 .env
 
-test-job*
+test-job*.js
